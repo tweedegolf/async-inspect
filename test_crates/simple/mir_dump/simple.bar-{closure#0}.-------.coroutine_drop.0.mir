@@ -1,0 +1,115 @@
+// MIR for `bar::{closure#0}` 0 coroutine_drop
+
+fn bar::{closure#0}(_1: *mut {async fn body of bar()}) -> () {
+    debug _task_context => _26;
+    let mut _0: ();
+    let mut _2: &mut std::task::Context<'_>;
+    let _3: i32;
+    let mut _5: {async fn body of foo()};
+    let mut _6: {async fn body of foo()};
+    let mut _8: ();
+    let _9: ();
+    let mut _10: std::task::Poll<i32>;
+    let mut _11: std::pin::Pin<&mut {async fn body of foo()}>;
+    let mut _12: &mut {async fn body of foo()};
+    let mut _13: &mut {async fn body of foo()};
+    let mut _14: &mut std::task::Context<'_>;
+    let mut _15: &mut std::task::Context<'_>;
+    let mut _16: &mut std::task::Context<'_>;
+    let mut _17: isize;
+    let mut _19: !;
+    let mut _20: &mut std::task::Context<'_>;
+    let mut _21: ();
+    let mut _22: i32;
+    let mut _23: i32;
+    let mut _24: (i32, bool);
+    let mut _25: i32;
+    let mut _26: &mut std::task::Context<'_>;
+    let mut _27: u32;
+    scope 1 {
+        debug a => (((*_1) as variant#3).0: i32);
+        let _4: i32;
+        let mut _7: {async fn body of foo()};
+        scope 2 {
+            debug b => _4;
+        }
+        scope 3 {
+            debug __awaitee => (((*_1) as variant#3).1: {async fn body of foo()});
+            let _18: i32;
+            scope 4 {
+                debug result => _18;
+            }
+        }
+    }
+
+    bb0: {
+        _27 = discriminant((*_1));
+        switchInt(move _27) -> [0: bb9, 3: bb12, otherwise: bb13];
+    }
+
+    bb1: {
+        StorageDead(_21);
+        StorageDead(_20);
+        drop((((*_1) as variant#3).1: {async fn body of foo()})) -> [return: bb2, unwind: bb6];
+    }
+
+    bb2: {
+        nop;
+        goto -> bb3;
+    }
+
+    bb3: {
+        StorageDead(_5);
+        StorageDead(_4);
+        nop;
+        goto -> bb10;
+    }
+
+    bb4: {
+        return;
+    }
+
+    bb5 (cleanup): {
+        resume;
+    }
+
+    bb6 (cleanup): {
+        nop;
+        goto -> bb7;
+    }
+
+    bb7 (cleanup): {
+        StorageDead(_5);
+        StorageDead(_4);
+        nop;
+        goto -> bb5;
+    }
+
+    bb8: {
+        return;
+    }
+
+    bb9: {
+        goto -> bb11;
+    }
+
+    bb10: {
+        goto -> bb4;
+    }
+
+    bb11: {
+        goto -> bb8;
+    }
+
+    bb12: {
+        StorageLive(_4);
+        StorageLive(_5);
+        StorageLive(_20);
+        StorageLive(_21);
+        goto -> bb1;
+    }
+
+    bb13: {
+        return;
+    }
+}

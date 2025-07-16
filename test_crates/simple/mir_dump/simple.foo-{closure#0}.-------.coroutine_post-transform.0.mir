@@ -1,0 +1,56 @@
+// MIR for `foo::{closure#0}` 0 coroutine_post-transform
+/* coroutine_layout = CoroutineLayout {
+    field_tys: {},
+    variant_fields: {
+        Unresumed(0): [],
+        Returned (1): [],
+        Panicked (2): [],
+    },
+    storage_conflicts: BitMatrix(0x0) {},
+} */
+
+fn foo::{closure#0}(_1: {async fn body of foo()}, _2: &mut Context<'_>) -> Poll<i32> {
+    debug _task_context => _4;
+    let mut _0: std::task::Poll<i32>;
+    let mut _3: i32;
+    let mut _4: &mut std::task::Context<'_>;
+
+    bb0: {
+        _4 = move _2;
+        _3 = std::hint::black_box::<i32>(const 5_i32) -> [return: bb1, unwind: bb3];
+    }
+
+    bb1: {
+        goto -> bb7;
+    }
+
+    bb2: {
+        _0 = Poll::<i32>::Ready(move _3);
+        discriminant(_1) = 1;
+        return;
+    }
+
+    bb3 (cleanup): {
+        goto -> bb4;
+    }
+
+    bb4 (cleanup): {
+        resume;
+    }
+
+    bb5: {
+        return;
+    }
+
+    bb6: {
+        goto -> bb8;
+    }
+
+    bb7: {
+        goto -> bb2;
+    }
+
+    bb8: {
+        goto -> bb5;
+    }
+}
