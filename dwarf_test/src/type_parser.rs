@@ -28,7 +28,8 @@ pub fn parse_file(file: &File) -> Result<Vec<FutureType>> {
         }
     }
 
-    let future_types = future_types.into_values().collect();
+    let mut future_types = future_types.into_values().collect::<Vec<_>>();
+    future_types.sort_unstable_by(|a, b| b.layout.total_size.cmp(&a.layout.total_size));
 
     Ok(future_types)
 }
@@ -213,6 +214,8 @@ struct Layout {
     awaitee: Option<Member>,
     state_member: Member,
 
+    total_size: u64,
+
     states: Vec<State>,
 }
 
@@ -297,11 +300,17 @@ impl Layout {
             size: awaitee_max_size,
         });
 
+        let Some(total_size) = ddbug_type.byte_size() else {
+            return Err("Future types should have a size".into());
+        };
+
         Ok(Self {
             members,
 
             awaitee,
             state_member,
+
+            total_size,
 
             states,
         })

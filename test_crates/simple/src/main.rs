@@ -14,9 +14,6 @@ fn main() {
     println!("{}", value);
 }
 
-// async fn bar() -> i32 {
-// }
-
 async fn foo_1() -> i32 {
     let a = std::hint::black_box(5);
     let b = foo_2().await;
