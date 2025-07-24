@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use ddbug_parser::{File, FileHash, Result, StructType, TypeKind};
 
@@ -140,13 +140,13 @@ fn type_to_string(ty: &ddbug_parser::Type, file_hash: &FileHash) -> String {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-struct Member {
-    name: String,
-    type_name: String,
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct Member {
+    pub name: String,
+    pub type_name: String,
     /// Offset from the start of the future struct
-    offset: u64,
-    size: u64,
+    pub offset: u64,
+    pub size: u64,
 }
 
 impl Member {
@@ -173,13 +173,13 @@ impl Member {
     }
 }
 
-#[derive(Debug)]
-struct State {
-    discriminant_value: u64,
-    active_members: Vec<usize>,
+#[derive(Debug, Clone)]
+pub struct State {
+    pub discriminant_value: u64,
+    pub active_members: Vec<usize>,
 
-    awaitee: Option<Member>,
-    name: String,
+    pub awaitee: Option<Member>,
+    pub name: String,
 }
 
 impl State {
@@ -203,37 +203,29 @@ impl State {
 }
 
 /// The layout of a future type
-#[derive(Debug)]
-struct Layout {
-    // /// List of variables captured from the enviroment
-    // upvar: Vec<Member>,
-    // /// List of locals that are stored in the future struct
-    // local: Vec<Member>,
-    members: Vec<Member>,
+#[derive(Debug, Clone)]
+pub struct Layout {
+    pub members: Vec<Member>,
 
-    awaitee: Option<Member>,
-    state_member: Member,
+    pub state_member: Member,
 
-    total_size: u64,
+    pub total_size: u64,
 
-    states: Vec<State>,
+    pub states: Vec<State>,
 }
 
 impl Layout {
     /// Get the layout of a Future type from the ddbug_type, ddbug_type should always be describing
     /// a future type.
     fn from_ddbug_type(ddbug_type: &StructType<'_>, file_hash: &FileHash) -> Result<Self> {
-        let [variant_part] =  ddbug_type.variant_parts() else {
+        let [variant_part] = ddbug_type.variant_parts() else {
             return Err("Future types should always have a single variant part".into());
         };
 
         let mut members = Vec::new();
-        let mut member_name_to_id = HashMap::<String, usize>::new();
+        let mut member_to_id = HashMap::<Member, usize>::new();
 
         let mut states = Vec::new();
-
-        let mut awaitee_offset = None;
-        let mut awaitee_max_size = 0;
 
         for variant in variant_part.variants() {
             let mut active_members = Vec::new();
@@ -243,43 +235,31 @@ impl Layout {
                 let member = Member::from_ddbug_member(member, file_hash)?;
 
                 if member.name == "__awaitee" {
-                    match awaitee_offset {
-                        Some(other_awaitee_offset) => {
-                            if other_awaitee_offset != member.offset {
-                                return Err(
-                                    "future type contains variants with diffrent awaitee offsets"
-                                        .into(),
-                                );
-                            }
-                        }
-                        None => awaitee_offset = Some(member.offset),
+                    if awaitee.is_some() {
+                        return Err("future type contains variants with multiple awaitees".into());
                     }
-                    awaitee_max_size = awaitee_max_size.max(member.size);
-
                     awaitee = Some(member);
-
                     continue;
                 }
 
-                let id = match member_name_to_id.get(&member.name) {
-                    Some(other_id) => {
-                        if member != members[*other_id] {
-                            return Err(
-                                "future type contains two diffrent members with the same name"
-                                    .into(),
-                            );
-                        }
-                        *other_id
-                    }
+                if member.size == 0 {
+                    continue;
+                }
+
+                let id = match member_to_id.get(&member) {
+                    Some(other_id) => *other_id,
                     None => {
                         let member_id = members.len();
-                        member_name_to_id.insert(member.name.clone(), member_id);
+                        member_to_id.insert(member.clone(), member_id);
                         members.push(member);
                         member_id
                     }
                 };
 
-                active_members.push(id);
+                // Rust somtimes ouputs the same field multiple times
+                if !active_members.contains(&id) {
+                    active_members.push(id);
+                }
             }
 
             states.push(State::from_ddbug_variant(variant, active_members, awaitee)?);
@@ -293,13 +273,6 @@ impl Layout {
             return Err("Future types should always have a member named __state".into());
         }
 
-        let awaitee = awaitee_offset.map(|offset| Member {
-            name: "__awaitee".to_owned(),
-            type_name: "".to_owned(),
-            offset,
-            size: awaitee_max_size,
-        });
-
         let Some(total_size) = ddbug_type.byte_size() else {
             return Err("Future types should have a size".into());
         };
@@ -307,7 +280,6 @@ impl Layout {
         Ok(Self {
             members,
 
-            awaitee,
             state_member,
 
             total_size,
@@ -318,14 +290,15 @@ impl Layout {
 
     /// Sort the members from smalles to biggest offset while kepping all id refrences intact
     fn sort_members_by_offset(&mut self) {
-        let mut new_ids = (0..self.members.len()).collect::<Vec<_>>();
-        new_ids.sort_unstable_by_key(|id| self.members[*id].offset);
+        let mut old_ids = (0..self.members.len()).collect::<Vec<_>>();
+        old_ids.sort_unstable_by_key(|id| self.members[*id].offset);
 
+        let mut new_ids = vec![0; old_ids.len()];
         let mut new_members = vec![Member::default(); self.members.len()];
-        for (old_id, new_id) in new_ids.iter().enumerate() {
-            std::mem::swap(&mut self.members[old_id], &mut new_members[*new_id]);
+        for (new_id, old_id) in old_ids.iter().enumerate() {
+            std::mem::swap(&mut self.members[*old_id], &mut new_members[new_id]);
+            new_ids[*old_id] = new_id;
         }
-
         self.members = new_members;
 
         for state in &mut self.states {
@@ -360,21 +333,21 @@ impl std::fmt::Display for Layout {
             (col, max_size)
         };
 
-        let mut byte_offset = 0;
+        // let mut byte_offset = 0;
         let mut add_member = |member: &Member| {
-            if member.offset != byte_offset {
-                add_col(
-                    "<padding>",
-                    &format!("{} bytes", member.offset - byte_offset),
-                );
-                byte_offset = member.offset;
-            }
+            // if member.offset != byte_offset {
+            //     add_col(
+            //         "<padding>",
+            //         &format!("{} bytes", member.offset - byte_offset),
+            //     );
+            //     byte_offset = member.offset;
+            // }
 
-            byte_offset += member.size;
+            // byte_offset += member.size;
 
             add_col(
                 &format!("{}: {}", member.name, member.type_name),
-                &format!("{} bytes", member.size),
+                &format!("{}[{}]", member.offset, member.size),
             )
         };
 
@@ -384,7 +357,7 @@ impl std::fmt::Display for Layout {
         }
         let state_pos = add_member(&self.state_member);
 
-        let awaitee_pos = self.awaitee.as_ref().map(|awaitee| add_member(awaitee));
+        let awaitee_pos = add_col("awaitee", "");
 
         writeln!(f, "{members_line1}")?;
         writeln!(f, "{members_line2}")?;
@@ -411,10 +384,12 @@ impl std::fmt::Display for Layout {
 
             match &state.awaitee {
                 Some(awaitee) => {
-                    let awaitee_pos = awaitee_pos.unwrap();
-
                     write!(f, "{}", " ".repeat(awaitee_pos.0 - current_col))?;
-                    writeln!(f, "{} ({} bytes)", awaitee.type_name, awaitee.size)?;
+                    writeln!(
+                        f,
+                        "{}[{}] {}",
+                        awaitee.offset, awaitee.size, awaitee.type_name
+                    )?;
                 }
                 None => {
                     writeln!(f, "")?;
@@ -426,10 +401,10 @@ impl std::fmt::Display for Layout {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FutureType {
-    path: String,
-    layout: Layout,
+    pub path: String,
+    pub layout: Layout,
 }
 
 impl FutureType {

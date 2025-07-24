@@ -1,13 +1,22 @@
 fn main() {
-    let a = std::hint::black_box(4);
+    let mut a = std::hint::black_box(4);
 
     let bar = async move {
         let b = foo_1().await;
         let c = foo_2().await;
-        let mid = a + b + c;
+        a += b;
         let d = foo_3::<i32>().await;
-        let e = foo_1().await;
-        mid + d + e
+        a += c;
+        let e = foo_2().await;
+        a += d;
+        let f = foo_3::<i32>().await;
+        a += e;
+        let g = foo_1().await;
+        a += f;
+        let h = foo_2().await;
+        a += g;
+        a += h;
+        a
     };
 
     let value = futures::executor::block_on(bar);

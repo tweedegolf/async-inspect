@@ -1,11 +1,14 @@
 [package]
-name = "simple"
+name = "async-inspect"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+process_path = "0.1.4"
+dwarf_reader = { path = "../dwarf_reader" }
+
+[dev-dependencies]
 futures = "0.3.31"
 
 [profile.release]
 debug = true
-opt-level = "z"
