@@ -1,0 +1,79 @@
+// MIR for `foo_3::{closure#0}` 0 coroutine_resume
+/* coroutine_layout = CoroutineLayout {
+    field_tys: {},
+    variant_fields: {
+        Unresumed(0): [],
+        Returned (1): [],
+        Panicked (2): [],
+    },
+    storage_conflicts: BitMatrix(0x0) {},
+} */
+
+fn foo_3::{closure#0}(_1: Pin<&mut {async fn body of foo_3<T>()}>, _2: &mut Context<'_>) -> Poll<T> {
+    debug _task_context => _5;
+    let mut _0: std::task::Poll<T>;
+    let mut _3: T;
+    let mut _4: T;
+    let mut _5: &mut std::task::Context<'_>;
+    let mut _6: u32;
+
+    bb0: {
+        _6 = discriminant((*(_1.0: &mut {async fn body of foo_3<T>()})));
+        switchInt(move _6) -> [0: bb1, 1: bb11, 2: bb10, otherwise: bb12];
+    }
+
+    bb1: {
+        _5 = move _2;
+        StorageLive(_3);
+        _3 = <T as Default>::default() -> [return: bb2, unwind: bb6];
+    }
+
+    bb2: {
+        _4 = std::hint::black_box::<T>(move _3) -> [return: bb3, unwind: bb5];
+    }
+
+    bb3: {
+        StorageDead(_3);
+        goto -> bb8;
+    }
+
+    bb4: {
+        _0 = Poll::<T>::Ready(move _4);
+        discriminant((*(_1.0: &mut {async fn body of foo_3<T>()}))) = 1;
+        return;
+    }
+
+    bb5 (cleanup): {
+        goto -> bb6;
+    }
+
+    bb6 (cleanup): {
+        StorageDead(_3);
+        goto -> bb7;
+    }
+
+    bb7 (cleanup): {
+        goto -> bb9;
+    }
+
+    bb8: {
+        goto -> bb4;
+    }
+
+    bb9 (cleanup): {
+        discriminant((*(_1.0: &mut {async fn body of foo_3<T>()}))) = 2;
+        resume;
+    }
+
+    bb10: {
+        assert(const false, "`async fn` resumed after panicking") -> [success: bb10, unwind continue];
+    }
+
+    bb11: {
+        assert(const false, "`async fn` resumed after completion") -> [success: bb11, unwind continue];
+    }
+
+    bb12: {
+        unreachable;
+    }
+}

@@ -1,0 +1,600 @@
+// MIR for `foo_1::{closure#0}` 0 coroutine_resume
+/* coroutine_layout = CoroutineLayout {
+    field_tys: {
+        _0: CoroutineSavedTy {
+            ty: std::string::String,
+            source_info: SourceInfo {
+                span: examples/simple.rs:33:9: 33:13 (#0),
+                scope: scope[0],
+            },
+            ignore_for_traits: false,
+        },
+        _1: CoroutineSavedTy {
+            ty: i32,
+            source_info: SourceInfo {
+                span: examples/simple.rs:34:9: 34:10 (#0),
+                scope: scope[1],
+            },
+            ignore_for_traits: false,
+        },
+        _2: CoroutineSavedTy {
+            ty: i32,
+            source_info: SourceInfo {
+                span: examples/simple.rs:35:9: 35:10 (#0),
+                scope: scope[2],
+            },
+            ignore_for_traits: false,
+        },
+        _3: CoroutineSavedTy {
+            ty: std::future::PollFn<Closure(DefId(0:10 ~ simple[8cbb]::foo_2::{closure#0}), [i16, Binder { value: extern "RustCall" fn((&'^0 mut std::task::Context<'^1>,)) -> std::task::Poll<i32>, bound_vars: [Region(BrAnon), Region(BrAnon)] }, (i32,)])>,
+            source_info: SourceInfo {
+                span: examples/simple.rs:35:13: 35:26 (#21),
+                scope: scope[2],
+            },
+            ignore_for_traits: false,
+        },
+        _4: CoroutineSavedTy {
+            ty: Coroutine(
+                DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                [
+                    i32,
+                    (),
+                    std::future::ResumeTy,
+                    (),
+                    i32,
+                    CoroutineWitness(
+                        DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                        [
+                            i32,
+                        ],
+                    ),
+                    (),
+                ],
+            ),
+            source_info: SourceInfo {
+                span: examples/simple.rs:36:13: 36:33 (#23),
+                scope: scope[3],
+            },
+            ignore_for_traits: false,
+        },
+    },
+    variant_fields: {
+        Unresumed(0): [],
+        Returned (1): [],
+        Panicked (2): [],
+        Suspend0 (3): [_0, _1, _3],
+        Suspend1 (4): [_0, _1, _2, _4],
+    },
+    storage_conflicts: BitMatrix(5x5) {
+        (_0, _0),
+        (_0, _1),
+        (_0, _2),
+        (_0, _3),
+        (_0, _4),
+        (_1, _0),
+        (_1, _1),
+        (_1, _2),
+        (_1, _3),
+        (_1, _4),
+        (_2, _0),
+        (_2, _1),
+        (_2, _2),
+        (_2, _3),
+        (_2, _4),
+        (_3, _0),
+        (_3, _1),
+        (_3, _2),
+        (_3, _3),
+        (_4, _0),
+        (_4, _1),
+        (_4, _2),
+        (_4, _4),
+    },
+} */
+
+fn foo_1::{closure#0}(_1: Pin<&mut {async fn body of foo_1()}>, _2: &mut Context<'_>) -> Poll<i32> {
+    debug _task_context => _50;
+    let mut _0: std::task::Poll<i32>;
+    let _3: std::string::String;
+    let mut _4: std::string::String;
+    let mut _5: &str;
+    let _6: &str;
+    let mut _9: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>;
+    let mut _10: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>;
+    let mut _12: ();
+    let _13: ();
+    let mut _14: std::task::Poll<i32>;
+    let mut _15: std::pin::Pin<&mut std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>>;
+    let mut _16: &mut std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>;
+    let mut _17: &mut std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>;
+    let mut _18: &mut std::task::Context<'_>;
+    let mut _19: &mut std::task::Context<'_>;
+    let mut _20: &mut std::task::Context<'_>;
+    let mut _21: isize;
+    let mut _23: !;
+    let mut _24: &mut std::task::Context<'_>;
+    let mut _25: ();
+    let mut _27: {async fn body of foo_3<i32>()};
+    let mut _28: {async fn body of foo_3<i32>()};
+    let _30: ();
+    let mut _31: std::task::Poll<i32>;
+    let mut _32: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _33: &mut {async fn body of foo_3<i32>()};
+    let mut _34: &mut {async fn body of foo_3<i32>()};
+    let mut _35: &mut std::task::Context<'_>;
+    let mut _36: &mut std::task::Context<'_>;
+    let mut _37: &mut std::task::Context<'_>;
+    let mut _38: isize;
+    let mut _40: !;
+    let mut _41: &mut std::task::Context<'_>;
+    let mut _42: ();
+    let mut _43: i32;
+    let mut _44: i32;
+    let mut _45: i32;
+    let mut _46: (i32, bool);
+    let mut _47: i32;
+    let mut _48: (i32, bool);
+    let mut _49: i32;
+    let mut _50: &mut std::task::Context<'_>;
+    let mut _51: u32;
+    scope 1 {
+        debug test => (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).0: std::string::String);
+        let _7: i32;
+        scope 2 {
+            debug a => (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).1: i32);
+            let _8: i32;
+            let mut _11: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>;
+            scope 3 {
+                debug b => (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).2: i32);
+                let _26: i32;
+                let mut _29: {async fn body of foo_3<i32>()};
+                scope 6 {
+                    debug c => _26;
+                }
+                scope 7 {
+                    debug __awaitee => (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).3: {async fn body of foo_3<i32>()});
+                    let _39: i32;
+                    scope 8 {
+                        debug result => _39;
+                    }
+                }
+            }
+            scope 4 {
+                debug __awaitee => (((*(_1.0: &mut {async fn body of foo_1()})) as variant#3).2: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>);
+                let _22: i32;
+                scope 5 {
+                    debug result => _22;
+                }
+            }
+        }
+    }
+
+    bb0: {
+        _51 = discriminant((*(_1.0: &mut {async fn body of foo_1()})));
+        switchInt(move _51) -> [0: bb1, 1: bb62, 2: bb61, 3: bb59, 4: bb60, otherwise: bb11];
+    }
+
+    bb1: {
+        _50 = move _2;
+        nop;
+        StorageLive(_4);
+        StorageLive(_5);
+        StorageLive(_6);
+        _6 = const "Test";
+        _5 = &(*_6);
+        _4 = <str as ToOwned>::to_owned(move _5) -> [return: bb2, unwind: bb53];
+    }
+
+    bb2: {
+        StorageDead(_5);
+        (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).0: std::string::String) = std::hint::black_box::<String>(move _4) -> [return: bb3, unwind: bb52];
+    }
+
+    bb3: {
+        StorageDead(_4);
+        StorageDead(_6);
+        nop;
+        (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).1: i32) = std::hint::black_box::<i32>(const 5_i32) -> [return: bb4, unwind: bb51];
+    }
+
+    bb4: {
+        nop;
+        StorageLive(_9);
+        StorageLive(_10);
+        _10 = foo_2() -> [return: bb5, unwind: bb48];
+    }
+
+    bb5: {
+        _9 = <std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}> as std::future::IntoFuture>::into_future(move _10) -> [return: bb6, unwind: bb47];
+    }
+
+    bb6: {
+        StorageDead(_10);
+        PlaceMention(_9);
+        nop;
+        (((*(_1.0: &mut {async fn body of foo_1()})) as variant#3).2: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>) = move _9;
+        goto -> bb7;
+    }
+
+    bb7: {
+        StorageLive(_13);
+        StorageLive(_14);
+        StorageLive(_15);
+        StorageLive(_16);
+        StorageLive(_17);
+        _17 = &mut (((*(_1.0: &mut {async fn body of foo_1()})) as variant#3).2: std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>);
+        _16 = &mut (*_17);
+        _15 = Pin::<&mut std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}>>::new_unchecked(move _16) -> [return: bb8, unwind: bb44];
+    }
+
+    bb8: {
+        StorageDead(_16);
+        StorageLive(_18);
+        StorageLive(_19);
+        StorageLive(_20);
+        _20 = copy _50;
+        _19 = move _20;
+        goto -> bb9;
+    }
+
+    bb9: {
+        _18 = &mut (*_19);
+        StorageDead(_20);
+        _14 = <std::future::PollFn<{closure@examples/simple.rs:42:34: 42:43}> as futures::Future>::poll(move _15, move _18) -> [return: bb10, unwind: bb43];
+    }
+
+    bb10: {
+        StorageDead(_19);
+        StorageDead(_18);
+        StorageDead(_17);
+        StorageDead(_15);
+        PlaceMention(_14);
+        _21 = discriminant(_14);
+        switchInt(move _21) -> [0: bb13, 1: bb12, otherwise: bb11];
+    }
+
+    bb11: {
+        unreachable;
+    }
+
+    bb12: {
+        _13 = const ();
+        StorageDead(_14);
+        StorageDead(_13);
+        StorageLive(_24);
+        StorageLive(_25);
+        _25 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_9);
+        StorageDead(_24);
+        StorageDead(_25);
+        discriminant((*(_1.0: &mut {async fn body of foo_1()}))) = 3;
+        return;
+    }
+
+    bb13: {
+        StorageLive(_22);
+        _22 = copy ((_14 as Ready).0: i32);
+        (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).2: i32) = copy _22;
+        StorageDead(_22);
+        StorageDead(_14);
+        StorageDead(_13);
+        goto -> bb15;
+    }
+
+    bb14: {
+        StorageDead(_25);
+        _50 = move _24;
+        StorageDead(_24);
+        _12 = const ();
+        goto -> bb7;
+    }
+
+    bb15: {
+        nop;
+        goto -> bb16;
+    }
+
+    bb16: {
+        StorageDead(_9);
+        StorageLive(_26);
+        StorageLive(_27);
+        StorageLive(_28);
+        _28 = foo_3::<i32>() -> [return: bb17, unwind: bb40];
+    }
+
+    bb17: {
+        _27 = <{async fn body of foo_3<i32>()} as std::future::IntoFuture>::into_future(move _28) -> [return: bb18, unwind: bb39];
+    }
+
+    bb18: {
+        StorageDead(_28);
+        PlaceMention(_27);
+        nop;
+        (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).3: {async fn body of foo_3<i32>()}) = move _27;
+        goto -> bb19;
+    }
+
+    bb19: {
+        StorageLive(_30);
+        StorageLive(_31);
+        StorageLive(_32);
+        StorageLive(_33);
+        StorageLive(_34);
+        _34 = &mut (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).3: {async fn body of foo_3<i32>()});
+        _33 = &mut (*_34);
+        _32 = Pin::<&mut {async fn body of foo_3<i32>()}>::new_unchecked(move _33) -> [return: bb20, unwind: bb36];
+    }
+
+    bb20: {
+        StorageDead(_33);
+        StorageLive(_35);
+        StorageLive(_36);
+        StorageLive(_37);
+        _37 = copy _50;
+        _36 = move _37;
+        goto -> bb21;
+    }
+
+    bb21: {
+        _35 = &mut (*_36);
+        StorageDead(_37);
+        _31 = <{async fn body of foo_3<i32>()} as futures::Future>::poll(move _32, move _35) -> [return: bb22, unwind: bb35];
+    }
+
+    bb22: {
+        StorageDead(_36);
+        StorageDead(_35);
+        StorageDead(_34);
+        StorageDead(_32);
+        PlaceMention(_31);
+        _38 = discriminant(_31);
+        switchInt(move _38) -> [0: bb24, 1: bb23, otherwise: bb11];
+    }
+
+    bb23: {
+        _30 = const ();
+        StorageDead(_31);
+        StorageDead(_30);
+        StorageLive(_41);
+        StorageLive(_42);
+        _42 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_26);
+        StorageDead(_27);
+        StorageDead(_41);
+        StorageDead(_42);
+        discriminant((*(_1.0: &mut {async fn body of foo_1()}))) = 4;
+        return;
+    }
+
+    bb24: {
+        StorageLive(_39);
+        _39 = copy ((_31 as Ready).0: i32);
+        _26 = copy _39;
+        StorageDead(_39);
+        StorageDead(_31);
+        StorageDead(_30);
+        drop((((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).3: {async fn body of foo_3<i32>()})) -> [return: bb26, unwind: bb38];
+    }
+
+    bb25: {
+        StorageDead(_42);
+        _50 = move _41;
+        StorageDead(_41);
+        _12 = const ();
+        goto -> bb19;
+    }
+
+    bb26: {
+        nop;
+        goto -> bb27;
+    }
+
+    bb27: {
+        StorageDead(_27);
+        StorageLive(_43);
+        StorageLive(_44);
+        _44 = copy (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).1: i32);
+        StorageLive(_45);
+        _45 = copy (((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).2: i32);
+        _46 = AddWithOverflow(copy _44, copy _45);
+        assert(!move (_46.1: bool), "attempt to compute `{} + {}`, which would overflow", move _44, move _45) -> [success: bb28, unwind: bb33];
+    }
+
+    bb28: {
+        _43 = move (_46.0: i32);
+        StorageDead(_45);
+        StorageDead(_44);
+        StorageLive(_47);
+        _47 = copy _26;
+        _48 = AddWithOverflow(copy _43, copy _47);
+        assert(!move (_48.1: bool), "attempt to compute `{} + {}`, which would overflow", move _43, move _47) -> [success: bb29, unwind: bb32];
+    }
+
+    bb29: {
+        _49 = move (_48.0: i32);
+        StorageDead(_47);
+        StorageDead(_43);
+        StorageDead(_26);
+        nop;
+        nop;
+        drop((((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).0: std::string::String)) -> [return: bb30, unwind: bb55];
+    }
+
+    bb30: {
+        nop;
+        goto -> bb57;
+    }
+
+    bb31: {
+        _0 = Poll::<i32>::Ready(move _49);
+        discriminant((*(_1.0: &mut {async fn body of foo_1()}))) = 1;
+        return;
+    }
+
+    bb32 (cleanup): {
+        StorageDead(_47);
+        goto -> bb34;
+    }
+
+    bb33 (cleanup): {
+        StorageDead(_45);
+        StorageDead(_44);
+        goto -> bb34;
+    }
+
+    bb34 (cleanup): {
+        StorageDead(_43);
+        goto -> bb42;
+    }
+
+    bb35 (cleanup): {
+        StorageDead(_36);
+        StorageDead(_35);
+        goto -> bb37;
+    }
+
+    bb36 (cleanup): {
+        StorageDead(_33);
+        goto -> bb37;
+    }
+
+    bb37 (cleanup): {
+        StorageDead(_34);
+        StorageDead(_32);
+        StorageDead(_31);
+        StorageDead(_30);
+        drop((((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).3: {async fn body of foo_3<i32>()})) -> [return: bb38, unwind terminate(cleanup)];
+    }
+
+    bb38 (cleanup): {
+        nop;
+        goto -> bb41;
+    }
+
+    bb39 (cleanup): {
+        goto -> bb40;
+    }
+
+    bb40 (cleanup): {
+        StorageDead(_28);
+        goto -> bb41;
+    }
+
+    bb41 (cleanup): {
+        StorageDead(_27);
+        goto -> bb42;
+    }
+
+    bb42 (cleanup): {
+        StorageDead(_26);
+        goto -> bb50;
+    }
+
+    bb43 (cleanup): {
+        StorageDead(_19);
+        StorageDead(_18);
+        goto -> bb45;
+    }
+
+    bb44 (cleanup): {
+        StorageDead(_16);
+        goto -> bb45;
+    }
+
+    bb45 (cleanup): {
+        StorageDead(_17);
+        StorageDead(_15);
+        StorageDead(_14);
+        StorageDead(_13);
+        goto -> bb46;
+    }
+
+    bb46 (cleanup): {
+        nop;
+        goto -> bb49;
+    }
+
+    bb47 (cleanup): {
+        goto -> bb48;
+    }
+
+    bb48 (cleanup): {
+        StorageDead(_10);
+        goto -> bb49;
+    }
+
+    bb49 (cleanup): {
+        StorageDead(_9);
+        goto -> bb50;
+    }
+
+    bb50 (cleanup): {
+        nop;
+        goto -> bb51;
+    }
+
+    bb51 (cleanup): {
+        nop;
+        drop((((*(_1.0: &mut {async fn body of foo_1()})) as variant#4).0: std::string::String)) -> [return: bb55, unwind terminate(cleanup)];
+    }
+
+    bb52 (cleanup): {
+        goto -> bb54;
+    }
+
+    bb53 (cleanup): {
+        StorageDead(_5);
+        goto -> bb54;
+    }
+
+    bb54 (cleanup): {
+        StorageDead(_4);
+        StorageDead(_6);
+        goto -> bb55;
+    }
+
+    bb55 (cleanup): {
+        nop;
+        goto -> bb56;
+    }
+
+    bb56 (cleanup): {
+        goto -> bb58;
+    }
+
+    bb57: {
+        goto -> bb31;
+    }
+
+    bb58 (cleanup): {
+        discriminant((*(_1.0: &mut {async fn body of foo_1()}))) = 2;
+        resume;
+    }
+
+    bb59: {
+        StorageLive(_9);
+        StorageLive(_24);
+        StorageLive(_25);
+        _24 = move _2;
+        goto -> bb14;
+    }
+
+    bb60: {
+        StorageLive(_26);
+        StorageLive(_27);
+        StorageLive(_41);
+        StorageLive(_42);
+        _41 = move _2;
+        goto -> bb25;
+    }
+
+    bb61: {
+        assert(const false, "`async fn` resumed after panicking") -> [success: bb61, unwind continue];
+    }
+
+    bb62: {
+        assert(const false, "`async fn` resumed after completion") -> [success: bb62, unwind continue];
+    }
+}

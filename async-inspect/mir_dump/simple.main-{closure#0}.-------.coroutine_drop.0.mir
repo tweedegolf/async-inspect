@@ -1,0 +1,331 @@
+// MIR for `main::{closure#0}` 0 coroutine_drop
+
+fn main::{closure#0}(_1: *mut {async block@examples/simple.rs:18:15: 18:25}) -> () {
+    debug _task_context => _83;
+    let mut _0: ();
+    let mut _2: &mut std::task::Context<'_>;
+    let _3: i32;
+    let mut _4: {async fn body of foo_3<i32>()};
+    let mut _5: {async fn body of foo_3<i32>()};
+    let mut _6: {async fn body of foo_3<i32>()};
+    let mut _7: ();
+    let _8: ();
+    let mut _9: std::task::Poll<i32>;
+    let mut _10: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _11: &mut {async fn body of foo_3<i32>()};
+    let mut _12: &mut {async fn body of foo_3<i32>()};
+    let mut _13: &mut std::task::Context<'_>;
+    let mut _14: &mut std::task::Context<'_>;
+    let mut _15: &mut std::task::Context<'_>;
+    let mut _16: isize;
+    let mut _18: !;
+    let mut _19: &mut std::task::Context<'_>;
+    let mut _20: ();
+    let mut _22: {async fn body of foo_3<i32>()};
+    let mut _23: {async fn body of foo_3<i32>()};
+    let _25: ();
+    let mut _26: std::task::Poll<i32>;
+    let mut _27: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _28: &mut {async fn body of foo_3<i32>()};
+    let mut _29: &mut {async fn body of foo_3<i32>()};
+    let mut _30: &mut std::task::Context<'_>;
+    let mut _31: &mut std::task::Context<'_>;
+    let mut _32: &mut std::task::Context<'_>;
+    let mut _33: isize;
+    let mut _35: !;
+    let mut _36: &mut std::task::Context<'_>;
+    let mut _37: ();
+    let mut _39: i32;
+    let mut _40: i32;
+    let mut _41: (i32, bool);
+    let mut _43: {async fn body of foo_3<i32>()};
+    let mut _44: {async fn body of foo_3<i32>()};
+    let _46: ();
+    let mut _47: std::task::Poll<i32>;
+    let mut _48: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _49: &mut {async fn body of foo_3<i32>()};
+    let mut _50: &mut {async fn body of foo_3<i32>()};
+    let mut _51: &mut std::task::Context<'_>;
+    let mut _52: &mut std::task::Context<'_>;
+    let mut _53: &mut std::task::Context<'_>;
+    let mut _54: isize;
+    let mut _56: !;
+    let mut _57: &mut std::task::Context<'_>;
+    let mut _58: ();
+    let mut _60: {async fn body of foo_3<i32>()};
+    let mut _61: {async fn body of foo_3<i32>()};
+    let _63: ();
+    let mut _64: std::task::Poll<i32>;
+    let mut _65: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _66: &mut {async fn body of foo_3<i32>()};
+    let mut _67: &mut {async fn body of foo_3<i32>()};
+    let mut _68: &mut std::task::Context<'_>;
+    let mut _69: &mut std::task::Context<'_>;
+    let mut _70: &mut std::task::Context<'_>;
+    let mut _71: isize;
+    let mut _73: !;
+    let mut _74: &mut std::task::Context<'_>;
+    let mut _75: ();
+    let mut _76: i32;
+    let mut _77: i32;
+    let mut _78: i32;
+    let mut _79: (i32, bool);
+    let mut _80: i32;
+    let mut _81: (i32, bool);
+    let mut _82: i32;
+    let mut _83: &mut std::task::Context<'_>;
+    let mut _84: u32;
+    scope 1 {
+        debug b => (((*_1) as variant#4).0: i32);
+        let _21: i32;
+        let mut _24: {async fn body of foo_3<i32>()};
+        scope 4 {
+            debug c => _21;
+            let _38: i32;
+            scope 7 {
+                debug mid => (((*_1) as variant#6).0: i32);
+                let _42: i32;
+                let mut _45: {async fn body of foo_3<i32>()};
+                scope 8 {
+                    debug d => (((*_1) as variant#6).1: i32);
+                    let _59: i32;
+                    let mut _62: {async fn body of foo_3<i32>()};
+                    scope 11 {
+                        debug e => _59;
+                    }
+                    scope 12 {
+                        debug __awaitee => (((*_1) as variant#6).2: {async fn body of foo_3<i32>()});
+                        let _72: i32;
+                        scope 13 {
+                            debug result => _72;
+                        }
+                    }
+                }
+                scope 9 {
+                    debug __awaitee => (((*_1) as variant#5).1: {async fn body of foo_3<i32>()});
+                    let _55: i32;
+                    scope 10 {
+                        debug result => _55;
+                    }
+                }
+            }
+        }
+        scope 5 {
+            debug __awaitee => (((*_1) as variant#4).1: {async fn body of foo_3<i32>()});
+            let _34: i32;
+            scope 6 {
+                debug result => _34;
+            }
+        }
+    }
+    scope 2 {
+        debug __awaitee => (((*_1) as variant#3).0: {async fn body of foo_3<i32>()});
+        let _17: i32;
+        scope 3 {
+            debug result => _17;
+        }
+    }
+
+    bb0: {
+        _84 = discriminant((*_1));
+        switchInt(move _84) -> [0: bb30, 3: bb33, 4: bb34, 5: bb35, 6: bb36, otherwise: bb37];
+    }
+
+    bb1: {
+        StorageDead(_75);
+        StorageDead(_74);
+        drop((((*_1) as variant#6).2: {async fn body of foo_3<i32>()})) -> [return: bb2, unwind: bb18];
+    }
+
+    bb2: {
+        nop;
+        goto -> bb3;
+    }
+
+    bb3: {
+        StorageDead(_60);
+        StorageDead(_59);
+        goto -> bb7;
+    }
+
+    bb4: {
+        StorageDead(_58);
+        StorageDead(_57);
+        drop((((*_1) as variant#5).1: {async fn body of foo_3<i32>()})) -> [return: bb5, unwind: bb20];
+    }
+
+    bb5: {
+        nop;
+        goto -> bb6;
+    }
+
+    bb6: {
+        StorageDead(_43);
+        goto -> bb7;
+    }
+
+    bb7: {
+        nop;
+        nop;
+        goto -> bb11;
+    }
+
+    bb8: {
+        StorageDead(_37);
+        StorageDead(_36);
+        drop((((*_1) as variant#4).1: {async fn body of foo_3<i32>()})) -> [return: bb9, unwind: bb23];
+    }
+
+    bb9: {
+        nop;
+        goto -> bb10;
+    }
+
+    bb10: {
+        StorageDead(_22);
+        goto -> bb11;
+    }
+
+    bb11: {
+        StorageDead(_21);
+        goto -> bb15;
+    }
+
+    bb12: {
+        StorageDead(_20);
+        StorageDead(_19);
+        drop((((*_1) as variant#3).0: {async fn body of foo_3<i32>()})) -> [return: bb13, unwind: bb26];
+    }
+
+    bb13: {
+        nop;
+        goto -> bb14;
+    }
+
+    bb14: {
+        StorageDead(_4);
+        goto -> bb15;
+    }
+
+    bb15: {
+        nop;
+        goto -> bb31;
+    }
+
+    bb16: {
+        return;
+    }
+
+    bb17 (cleanup): {
+        resume;
+    }
+
+    bb18 (cleanup): {
+        nop;
+        goto -> bb19;
+    }
+
+    bb19 (cleanup): {
+        StorageDead(_60);
+        StorageDead(_59);
+        goto -> bb22;
+    }
+
+    bb20 (cleanup): {
+        nop;
+        goto -> bb21;
+    }
+
+    bb21 (cleanup): {
+        StorageDead(_43);
+        goto -> bb22;
+    }
+
+    bb22 (cleanup): {
+        nop;
+        nop;
+        goto -> bb25;
+    }
+
+    bb23 (cleanup): {
+        nop;
+        goto -> bb24;
+    }
+
+    bb24 (cleanup): {
+        StorageDead(_22);
+        goto -> bb25;
+    }
+
+    bb25 (cleanup): {
+        StorageDead(_21);
+        goto -> bb28;
+    }
+
+    bb26 (cleanup): {
+        nop;
+        goto -> bb27;
+    }
+
+    bb27 (cleanup): {
+        StorageDead(_4);
+        goto -> bb28;
+    }
+
+    bb28 (cleanup): {
+        nop;
+        goto -> bb17;
+    }
+
+    bb29: {
+        return;
+    }
+
+    bb30: {
+        goto -> bb32;
+    }
+
+    bb31: {
+        goto -> bb16;
+    }
+
+    bb32: {
+        goto -> bb29;
+    }
+
+    bb33: {
+        StorageLive(_4);
+        StorageLive(_19);
+        StorageLive(_20);
+        goto -> bb12;
+    }
+
+    bb34: {
+        StorageLive(_21);
+        StorageLive(_22);
+        StorageLive(_36);
+        StorageLive(_37);
+        goto -> bb8;
+    }
+
+    bb35: {
+        StorageLive(_21);
+        StorageLive(_43);
+        StorageLive(_57);
+        StorageLive(_58);
+        goto -> bb4;
+    }
+
+    bb36: {
+        StorageLive(_21);
+        StorageLive(_59);
+        StorageLive(_60);
+        StorageLive(_74);
+        StorageLive(_75);
+        goto -> bb1;
+    }
+
+    bb37: {
+        return;
+    }
+}

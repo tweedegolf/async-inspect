@@ -1,0 +1,1115 @@
+// MIR for `main::{closure#0}` 0 coroutine_post-transform
+/* coroutine_layout = CoroutineLayout {
+    field_tys: {
+        _0: CoroutineSavedTy {
+            ty: i32,
+            source_info: SourceInfo {
+                span: examples/simple.rs:19:13: 19:14 (#0),
+                scope: scope[0],
+            },
+            ignore_for_traits: false,
+        },
+        _1: CoroutineSavedTy {
+            ty: Coroutine(
+                DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                [
+                    i32,
+                    (),
+                    std::future::ResumeTy,
+                    (),
+                    i32,
+                    CoroutineWitness(
+                        DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                        [
+                            i32,
+                        ],
+                    ),
+                    (),
+                ],
+            ),
+            source_info: SourceInfo {
+                span: examples/simple.rs:19:17: 19:37 (#10),
+                scope: scope[0],
+            },
+            ignore_for_traits: false,
+        },
+        _2: CoroutineSavedTy {
+            ty: Coroutine(
+                DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                [
+                    i32,
+                    (),
+                    std::future::ResumeTy,
+                    (),
+                    i32,
+                    CoroutineWitness(
+                        DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                        [
+                            i32,
+                        ],
+                    ),
+                    (),
+                ],
+            ),
+            source_info: SourceInfo {
+                span: examples/simple.rs:20:17: 20:37 (#12),
+                scope: scope[1],
+            },
+            ignore_for_traits: false,
+        },
+        _3: CoroutineSavedTy {
+            ty: i32,
+            source_info: SourceInfo {
+                span: examples/simple.rs:21:13: 21:16 (#0),
+                scope: scope[4],
+            },
+            ignore_for_traits: false,
+        },
+        _4: CoroutineSavedTy {
+            ty: i32,
+            source_info: SourceInfo {
+                span: examples/simple.rs:23:13: 23:14 (#0),
+                scope: scope[7],
+            },
+            ignore_for_traits: false,
+        },
+        _5: CoroutineSavedTy {
+            ty: Coroutine(
+                DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                [
+                    i32,
+                    (),
+                    std::future::ResumeTy,
+                    (),
+                    i32,
+                    CoroutineWitness(
+                        DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                        [
+                            i32,
+                        ],
+                    ),
+                    (),
+                ],
+            ),
+            source_info: SourceInfo {
+                span: examples/simple.rs:23:17: 23:37 (#14),
+                scope: scope[7],
+            },
+            ignore_for_traits: false,
+        },
+        _6: CoroutineSavedTy {
+            ty: Coroutine(
+                DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                [
+                    i32,
+                    (),
+                    std::future::ResumeTy,
+                    (),
+                    i32,
+                    CoroutineWitness(
+                        DefId(0:14 ~ simple[8cbb]::foo_3::{closure#0}),
+                        [
+                            i32,
+                        ],
+                    ),
+                    (),
+                ],
+            ),
+            source_info: SourceInfo {
+                span: examples/simple.rs:24:17: 24:37 (#16),
+                scope: scope[8],
+            },
+            ignore_for_traits: false,
+        },
+    },
+    variant_fields: {
+        Unresumed(0): [],
+        Returned (1): [],
+        Panicked (2): [],
+        Suspend0 (3): [_1],
+        Suspend1 (4): [_0, _2],
+        Suspend2 (5): [_3, _5],
+        Suspend3 (6): [_3, _4, _6],
+    },
+    storage_conflicts: BitMatrix(7x7) {
+        (_0, _0),
+        (_0, _1),
+        (_0, _2),
+        (_0, _3),
+        (_0, _4),
+        (_0, _5),
+        (_0, _6),
+        (_1, _0),
+        (_1, _1),
+        (_2, _0),
+        (_2, _2),
+        (_3, _0),
+        (_3, _3),
+        (_3, _4),
+        (_3, _5),
+        (_3, _6),
+        (_4, _0),
+        (_4, _3),
+        (_4, _4),
+        (_4, _5),
+        (_4, _6),
+        (_5, _0),
+        (_5, _3),
+        (_5, _4),
+        (_5, _5),
+        (_6, _0),
+        (_6, _3),
+        (_6, _4),
+        (_6, _6),
+    },
+} */
+
+fn main::{closure#0}(_1: {async block@examples/simple.rs:18:15: 18:25}, _2: &mut Context<'_>) -> Poll<i32> {
+    debug _task_context => _83;
+    let mut _0: std::task::Poll<i32>;
+    let _3: i32;
+    let mut _4: {async fn body of foo_3<i32>()};
+    let mut _5: {async fn body of foo_3<i32>()};
+    let mut _6: {async fn body of foo_3<i32>()};
+    let mut _7: ();
+    let _8: ();
+    let mut _9: std::task::Poll<i32>;
+    let mut _10: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _11: &mut {async fn body of foo_3<i32>()};
+    let mut _12: &mut {async fn body of foo_3<i32>()};
+    let mut _13: &mut std::task::Context<'_>;
+    let mut _14: &mut std::task::Context<'_>;
+    let mut _15: &mut std::task::Context<'_>;
+    let mut _16: isize;
+    let mut _18: !;
+    let mut _19: &mut std::task::Context<'_>;
+    let mut _20: ();
+    let mut _22: {async fn body of foo_3<i32>()};
+    let mut _23: {async fn body of foo_3<i32>()};
+    let _25: ();
+    let mut _26: std::task::Poll<i32>;
+    let mut _27: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _28: &mut {async fn body of foo_3<i32>()};
+    let mut _29: &mut {async fn body of foo_3<i32>()};
+    let mut _30: &mut std::task::Context<'_>;
+    let mut _31: &mut std::task::Context<'_>;
+    let mut _32: &mut std::task::Context<'_>;
+    let mut _33: isize;
+    let mut _35: !;
+    let mut _36: &mut std::task::Context<'_>;
+    let mut _37: ();
+    let mut _39: i32;
+    let mut _40: i32;
+    let mut _41: (i32, bool);
+    let mut _43: {async fn body of foo_3<i32>()};
+    let mut _44: {async fn body of foo_3<i32>()};
+    let _46: ();
+    let mut _47: std::task::Poll<i32>;
+    let mut _48: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _49: &mut {async fn body of foo_3<i32>()};
+    let mut _50: &mut {async fn body of foo_3<i32>()};
+    let mut _51: &mut std::task::Context<'_>;
+    let mut _52: &mut std::task::Context<'_>;
+    let mut _53: &mut std::task::Context<'_>;
+    let mut _54: isize;
+    let mut _56: !;
+    let mut _57: &mut std::task::Context<'_>;
+    let mut _58: ();
+    let mut _60: {async fn body of foo_3<i32>()};
+    let mut _61: {async fn body of foo_3<i32>()};
+    let _63: ();
+    let mut _64: std::task::Poll<i32>;
+    let mut _65: std::pin::Pin<&mut {async fn body of foo_3<i32>()}>;
+    let mut _66: &mut {async fn body of foo_3<i32>()};
+    let mut _67: &mut {async fn body of foo_3<i32>()};
+    let mut _68: &mut std::task::Context<'_>;
+    let mut _69: &mut std::task::Context<'_>;
+    let mut _70: &mut std::task::Context<'_>;
+    let mut _71: isize;
+    let mut _73: !;
+    let mut _74: &mut std::task::Context<'_>;
+    let mut _75: ();
+    let mut _76: i32;
+    let mut _77: i32;
+    let mut _78: i32;
+    let mut _79: (i32, bool);
+    let mut _80: i32;
+    let mut _81: (i32, bool);
+    let mut _82: i32;
+    let mut _83: &mut std::task::Context<'_>;
+    scope 1 {
+        debug b => ((_1 as variant#4).0: i32);
+        let _21: i32;
+        let mut _24: {async fn body of foo_3<i32>()};
+        scope 4 {
+            debug c => _21;
+            let _38: i32;
+            scope 7 {
+                debug mid => ((_1 as variant#6).0: i32);
+                let _42: i32;
+                let mut _45: {async fn body of foo_3<i32>()};
+                scope 8 {
+                    debug d => ((_1 as variant#6).1: i32);
+                    let _59: i32;
+                    let mut _62: {async fn body of foo_3<i32>()};
+                    scope 11 {
+                        debug e => _59;
+                    }
+                    scope 12 {
+                        debug __awaitee => ((_1 as variant#6).2: {async fn body of foo_3<i32>()});
+                        let _72: i32;
+                        scope 13 {
+                            debug result => _72;
+                        }
+                    }
+                }
+                scope 9 {
+                    debug __awaitee => ((_1 as variant#5).1: {async fn body of foo_3<i32>()});
+                    let _55: i32;
+                    scope 10 {
+                        debug result => _55;
+                    }
+                }
+            }
+        }
+        scope 5 {
+            debug __awaitee => ((_1 as variant#4).1: {async fn body of foo_3<i32>()});
+            let _34: i32;
+            scope 6 {
+                debug result => _34;
+            }
+        }
+    }
+    scope 2 {
+        debug __awaitee => ((_1 as variant#3).0: {async fn body of foo_3<i32>()});
+        let _17: i32;
+        scope 3 {
+            debug result => _17;
+        }
+    }
+
+    bb0: {
+        _83 = move _2;
+        nop;
+        StorageLive(_4);
+        StorageLive(_5);
+        _5 = foo_3::<i32>() -> [return: bb1, unwind: bb104];
+    }
+
+    bb1: {
+        _4 = <{async fn body of foo_3<i32>()} as std::future::IntoFuture>::into_future(move _5) -> [return: bb2, unwind: bb103];
+    }
+
+    bb2: {
+        StorageDead(_5);
+        PlaceMention(_4);
+        nop;
+        ((_1 as variant#3).0: {async fn body of foo_3<i32>()}) = move _4;
+        goto -> bb3;
+    }
+
+    bb3: {
+        StorageLive(_8);
+        StorageLive(_9);
+        StorageLive(_10);
+        StorageLive(_11);
+        StorageLive(_12);
+        _12 = &mut ((_1 as variant#3).0: {async fn body of foo_3<i32>()});
+        _11 = &mut (*_12);
+        _10 = Pin::<&mut {async fn body of foo_3<i32>()}>::new_unchecked(move _11) -> [return: bb4, unwind: bb100];
+    }
+
+    bb4: {
+        StorageDead(_11);
+        StorageLive(_13);
+        StorageLive(_14);
+        StorageLive(_15);
+        _15 = copy _83;
+        _14 = move _15;
+        goto -> bb5;
+    }
+
+    bb5: {
+        _13 = &mut (*_14);
+        StorageDead(_15);
+        _9 = <{async fn body of foo_3<i32>()} as futures::Future>::poll(move _10, move _13) -> [return: bb6, unwind: bb99];
+    }
+
+    bb6: {
+        StorageDead(_14);
+        StorageDead(_13);
+        StorageDead(_12);
+        StorageDead(_10);
+        PlaceMention(_9);
+        _16 = discriminant(_9);
+        switchInt(move _16) -> [0: bb9, 1: bb8, otherwise: bb7];
+    }
+
+    bb7: {
+        unreachable;
+    }
+
+    bb8: {
+        _8 = const ();
+        StorageDead(_9);
+        StorageDead(_8);
+        StorageLive(_19);
+        StorageLive(_20);
+        _20 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_4);
+        StorageDead(_19);
+        StorageDead(_20);
+        discriminant(_1) = 3;
+        return;
+    }
+
+    bb9: {
+        StorageLive(_17);
+        _17 = copy ((_9 as Ready).0: i32);
+        ((_1 as variant#4).0: i32) = copy _17;
+        StorageDead(_17);
+        StorageDead(_9);
+        StorageDead(_8);
+        drop(((_1 as variant#3).0: {async fn body of foo_3<i32>()})) -> [return: bb11, unwind: bb102];
+    }
+
+    bb10: {
+        StorageDead(_20);
+        _83 = move _19;
+        StorageDead(_19);
+        _7 = const ();
+        goto -> bb3;
+    }
+
+    bb11: {
+        nop;
+        goto -> bb12;
+    }
+
+    bb12: {
+        StorageDead(_4);
+        StorageLive(_21);
+        StorageLive(_22);
+        StorageLive(_23);
+        _23 = foo_3::<i32>() -> [return: bb13, unwind: bb95];
+    }
+
+    bb13: {
+        _22 = <{async fn body of foo_3<i32>()} as std::future::IntoFuture>::into_future(move _23) -> [return: bb14, unwind: bb94];
+    }
+
+    bb14: {
+        StorageDead(_23);
+        PlaceMention(_22);
+        nop;
+        ((_1 as variant#4).1: {async fn body of foo_3<i32>()}) = move _22;
+        goto -> bb15;
+    }
+
+    bb15: {
+        StorageLive(_25);
+        StorageLive(_26);
+        StorageLive(_27);
+        StorageLive(_28);
+        StorageLive(_29);
+        _29 = &mut ((_1 as variant#4).1: {async fn body of foo_3<i32>()});
+        _28 = &mut (*_29);
+        _27 = Pin::<&mut {async fn body of foo_3<i32>()}>::new_unchecked(move _28) -> [return: bb16, unwind: bb91];
+    }
+
+    bb16: {
+        StorageDead(_28);
+        StorageLive(_30);
+        StorageLive(_31);
+        StorageLive(_32);
+        _32 = copy _83;
+        _31 = move _32;
+        goto -> bb17;
+    }
+
+    bb17: {
+        _30 = &mut (*_31);
+        StorageDead(_32);
+        _26 = <{async fn body of foo_3<i32>()} as futures::Future>::poll(move _27, move _30) -> [return: bb18, unwind: bb90];
+    }
+
+    bb18: {
+        StorageDead(_31);
+        StorageDead(_30);
+        StorageDead(_29);
+        StorageDead(_27);
+        PlaceMention(_26);
+        _33 = discriminant(_26);
+        switchInt(move _33) -> [0: bb20, 1: bb19, otherwise: bb7];
+    }
+
+    bb19: {
+        _25 = const ();
+        StorageDead(_26);
+        StorageDead(_25);
+        StorageLive(_36);
+        StorageLive(_37);
+        _37 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_21);
+        StorageDead(_22);
+        StorageDead(_36);
+        StorageDead(_37);
+        discriminant(_1) = 4;
+        return;
+    }
+
+    bb20: {
+        StorageLive(_34);
+        _34 = copy ((_26 as Ready).0: i32);
+        _21 = copy _34;
+        StorageDead(_34);
+        StorageDead(_26);
+        StorageDead(_25);
+        drop(((_1 as variant#4).1: {async fn body of foo_3<i32>()})) -> [return: bb22, unwind: bb93];
+    }
+
+    bb21: {
+        StorageDead(_37);
+        _83 = move _36;
+        StorageDead(_36);
+        _7 = const ();
+        goto -> bb15;
+    }
+
+    bb22: {
+        nop;
+        goto -> bb23;
+    }
+
+    bb23: {
+        StorageDead(_22);
+        nop;
+        StorageLive(_39);
+        _39 = copy ((_1 as variant#4).0: i32);
+        StorageLive(_40);
+        _40 = copy _21;
+        _41 = AddWithOverflow(copy _39, copy _40);
+        assert(!move (_41.1: bool), "attempt to compute `{} + {}`, which would overflow", move _39, move _40) -> [success: bb24, unwind: bb87];
+    }
+
+    bb24: {
+        ((_1 as variant#6).0: i32) = move (_41.0: i32);
+        StorageDead(_40);
+        StorageDead(_39);
+        nop;
+        StorageLive(_43);
+        StorageLive(_44);
+        _44 = foo_3::<i32>() -> [return: bb25, unwind: bb84];
+    }
+
+    bb25: {
+        _43 = <{async fn body of foo_3<i32>()} as std::future::IntoFuture>::into_future(move _44) -> [return: bb26, unwind: bb83];
+    }
+
+    bb26: {
+        StorageDead(_44);
+        PlaceMention(_43);
+        nop;
+        ((_1 as variant#5).1: {async fn body of foo_3<i32>()}) = move _43;
+        goto -> bb27;
+    }
+
+    bb27: {
+        StorageLive(_46);
+        StorageLive(_47);
+        StorageLive(_48);
+        StorageLive(_49);
+        StorageLive(_50);
+        _50 = &mut ((_1 as variant#5).1: {async fn body of foo_3<i32>()});
+        _49 = &mut (*_50);
+        _48 = Pin::<&mut {async fn body of foo_3<i32>()}>::new_unchecked(move _49) -> [return: bb28, unwind: bb80];
+    }
+
+    bb28: {
+        StorageDead(_49);
+        StorageLive(_51);
+        StorageLive(_52);
+        StorageLive(_53);
+        _53 = copy _83;
+        _52 = move _53;
+        goto -> bb29;
+    }
+
+    bb29: {
+        _51 = &mut (*_52);
+        StorageDead(_53);
+        _47 = <{async fn body of foo_3<i32>()} as futures::Future>::poll(move _48, move _51) -> [return: bb30, unwind: bb79];
+    }
+
+    bb30: {
+        StorageDead(_52);
+        StorageDead(_51);
+        StorageDead(_50);
+        StorageDead(_48);
+        PlaceMention(_47);
+        _54 = discriminant(_47);
+        switchInt(move _54) -> [0: bb32, 1: bb31, otherwise: bb7];
+    }
+
+    bb31: {
+        _46 = const ();
+        StorageDead(_47);
+        StorageDead(_46);
+        StorageLive(_57);
+        StorageLive(_58);
+        _58 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_21);
+        StorageDead(_43);
+        StorageDead(_57);
+        StorageDead(_58);
+        discriminant(_1) = 5;
+        return;
+    }
+
+    bb32: {
+        StorageLive(_55);
+        _55 = copy ((_47 as Ready).0: i32);
+        ((_1 as variant#6).1: i32) = copy _55;
+        StorageDead(_55);
+        StorageDead(_47);
+        StorageDead(_46);
+        drop(((_1 as variant#5).1: {async fn body of foo_3<i32>()})) -> [return: bb34, unwind: bb82];
+    }
+
+    bb33: {
+        StorageDead(_58);
+        _83 = move _57;
+        StorageDead(_57);
+        _7 = const ();
+        goto -> bb27;
+    }
+
+    bb34: {
+        nop;
+        goto -> bb35;
+    }
+
+    bb35: {
+        StorageDead(_43);
+        StorageLive(_59);
+        StorageLive(_60);
+        StorageLive(_61);
+        _61 = foo_3::<i32>() -> [return: bb36, unwind: bb75];
+    }
+
+    bb36: {
+        _60 = <{async fn body of foo_3<i32>()} as std::future::IntoFuture>::into_future(move _61) -> [return: bb37, unwind: bb74];
+    }
+
+    bb37: {
+        StorageDead(_61);
+        PlaceMention(_60);
+        nop;
+        ((_1 as variant#6).2: {async fn body of foo_3<i32>()}) = move _60;
+        goto -> bb38;
+    }
+
+    bb38: {
+        StorageLive(_63);
+        StorageLive(_64);
+        StorageLive(_65);
+        StorageLive(_66);
+        StorageLive(_67);
+        _67 = &mut ((_1 as variant#6).2: {async fn body of foo_3<i32>()});
+        _66 = &mut (*_67);
+        _65 = Pin::<&mut {async fn body of foo_3<i32>()}>::new_unchecked(move _66) -> [return: bb39, unwind: bb71];
+    }
+
+    bb39: {
+        StorageDead(_66);
+        StorageLive(_68);
+        StorageLive(_69);
+        StorageLive(_70);
+        _70 = copy _83;
+        _69 = move _70;
+        goto -> bb40;
+    }
+
+    bb40: {
+        _68 = &mut (*_69);
+        StorageDead(_70);
+        _64 = <{async fn body of foo_3<i32>()} as futures::Future>::poll(move _65, move _68) -> [return: bb41, unwind: bb70];
+    }
+
+    bb41: {
+        StorageDead(_69);
+        StorageDead(_68);
+        StorageDead(_67);
+        StorageDead(_65);
+        PlaceMention(_64);
+        _71 = discriminant(_64);
+        switchInt(move _71) -> [0: bb43, 1: bb42, otherwise: bb7];
+    }
+
+    bb42: {
+        _63 = const ();
+        StorageDead(_64);
+        StorageDead(_63);
+        StorageLive(_74);
+        StorageLive(_75);
+        _75 = ();
+        _0 = Poll::<i32>::Pending;
+        StorageDead(_21);
+        StorageDead(_59);
+        StorageDead(_60);
+        StorageDead(_74);
+        StorageDead(_75);
+        discriminant(_1) = 6;
+        return;
+    }
+
+    bb43: {
+        StorageLive(_72);
+        _72 = copy ((_64 as Ready).0: i32);
+        _59 = copy _72;
+        StorageDead(_72);
+        StorageDead(_64);
+        StorageDead(_63);
+        drop(((_1 as variant#6).2: {async fn body of foo_3<i32>()})) -> [return: bb45, unwind: bb73];
+    }
+
+    bb44: {
+        StorageDead(_75);
+        _83 = move _74;
+        StorageDead(_74);
+        _7 = const ();
+        goto -> bb38;
+    }
+
+    bb45: {
+        nop;
+        goto -> bb46;
+    }
+
+    bb46: {
+        StorageDead(_60);
+        StorageLive(_76);
+        StorageLive(_77);
+        _77 = copy ((_1 as variant#6).0: i32);
+        StorageLive(_78);
+        _78 = copy ((_1 as variant#6).1: i32);
+        _79 = AddWithOverflow(copy _77, copy _78);
+        assert(!move (_79.1: bool), "attempt to compute `{} + {}`, which would overflow", move _77, move _78) -> [success: bb47, unwind: bb67];
+    }
+
+    bb47: {
+        _76 = move (_79.0: i32);
+        StorageDead(_78);
+        StorageDead(_77);
+        StorageLive(_80);
+        _80 = copy _59;
+        _81 = AddWithOverflow(copy _76, copy _80);
+        assert(!move (_81.1: bool), "attempt to compute `{} + {}`, which would overflow", move _76, move _80) -> [success: bb48, unwind: bb66];
+    }
+
+    bb48: {
+        _82 = move (_81.0: i32);
+        StorageDead(_80);
+        StorageDead(_76);
+        StorageDead(_59);
+        nop;
+        nop;
+        StorageDead(_21);
+        nop;
+        goto -> bb121;
+    }
+
+    bb49: {
+        _0 = Poll::<i32>::Ready(move _82);
+        discriminant(_1) = 1;
+        return;
+    }
+
+    bb50: {
+        StorageDead(_75);
+        StorageDead(_74);
+        drop(((_1 as variant#6).2: {async fn body of foo_3<i32>()})) -> [return: bb51, unwind: bb108];
+    }
+
+    bb51: {
+        nop;
+        goto -> bb52;
+    }
+
+    bb52: {
+        StorageDead(_60);
+        StorageDead(_59);
+        goto -> bb56;
+    }
+
+    bb53: {
+        StorageDead(_58);
+        StorageDead(_57);
+        drop(((_1 as variant#5).1: {async fn body of foo_3<i32>()})) -> [return: bb54, unwind: bb110];
+    }
+
+    bb54: {
+        nop;
+        goto -> bb55;
+    }
+
+    bb55: {
+        StorageDead(_43);
+        goto -> bb56;
+    }
+
+    bb56: {
+        nop;
+        nop;
+        goto -> bb60;
+    }
+
+    bb57: {
+        StorageDead(_37);
+        StorageDead(_36);
+        drop(((_1 as variant#4).1: {async fn body of foo_3<i32>()})) -> [return: bb58, unwind: bb113];
+    }
+
+    bb58: {
+        nop;
+        goto -> bb59;
+    }
+
+    bb59: {
+        StorageDead(_22);
+        goto -> bb60;
+    }
+
+    bb60: {
+        StorageDead(_21);
+        goto -> bb64;
+    }
+
+    bb61: {
+        StorageDead(_20);
+        StorageDead(_19);
+        drop(((_1 as variant#3).0: {async fn body of foo_3<i32>()})) -> [return: bb62, unwind: bb116];
+    }
+
+    bb62: {
+        nop;
+        goto -> bb63;
+    }
+
+    bb63: {
+        StorageDead(_4);
+        goto -> bb64;
+    }
+
+    bb64: {
+        nop;
+        goto -> bb122;
+    }
+
+    bb65: {
+        coroutine_drop;
+    }
+
+    bb66 (cleanup): {
+        StorageDead(_80);
+        goto -> bb68;
+    }
+
+    bb67 (cleanup): {
+        StorageDead(_78);
+        StorageDead(_77);
+        goto -> bb68;
+    }
+
+    bb68 (cleanup): {
+        StorageDead(_76);
+        goto -> bb77;
+    }
+
+    bb69 (cleanup): {
+        StorageDead(_70);
+        goto -> bb70;
+    }
+
+    bb70 (cleanup): {
+        StorageDead(_69);
+        StorageDead(_68);
+        goto -> bb72;
+    }
+
+    bb71 (cleanup): {
+        StorageDead(_66);
+        goto -> bb72;
+    }
+
+    bb72 (cleanup): {
+        StorageDead(_67);
+        StorageDead(_65);
+        StorageDead(_64);
+        StorageDead(_63);
+        drop(((_1 as variant#6).2: {async fn body of foo_3<i32>()})) -> [return: bb73, unwind terminate(cleanup)];
+    }
+
+    bb73 (cleanup): {
+        nop;
+        goto -> bb76;
+    }
+
+    bb74 (cleanup): {
+        goto -> bb75;
+    }
+
+    bb75 (cleanup): {
+        StorageDead(_61);
+        goto -> bb76;
+    }
+
+    bb76 (cleanup): {
+        StorageDead(_60);
+        goto -> bb77;
+    }
+
+    bb77 (cleanup): {
+        StorageDead(_59);
+        goto -> bb86;
+    }
+
+    bb78 (cleanup): {
+        StorageDead(_53);
+        goto -> bb79;
+    }
+
+    bb79 (cleanup): {
+        StorageDead(_52);
+        StorageDead(_51);
+        goto -> bb81;
+    }
+
+    bb80 (cleanup): {
+        StorageDead(_49);
+        goto -> bb81;
+    }
+
+    bb81 (cleanup): {
+        StorageDead(_50);
+        StorageDead(_48);
+        StorageDead(_47);
+        StorageDead(_46);
+        drop(((_1 as variant#5).1: {async fn body of foo_3<i32>()})) -> [return: bb82, unwind terminate(cleanup)];
+    }
+
+    bb82 (cleanup): {
+        nop;
+        goto -> bb85;
+    }
+
+    bb83 (cleanup): {
+        goto -> bb84;
+    }
+
+    bb84 (cleanup): {
+        StorageDead(_44);
+        goto -> bb85;
+    }
+
+    bb85 (cleanup): {
+        StorageDead(_43);
+        goto -> bb86;
+    }
+
+    bb86 (cleanup): {
+        nop;
+        goto -> bb88;
+    }
+
+    bb87 (cleanup): {
+        StorageDead(_40);
+        StorageDead(_39);
+        goto -> bb88;
+    }
+
+    bb88 (cleanup): {
+        nop;
+        goto -> bb97;
+    }
+
+    bb89 (cleanup): {
+        StorageDead(_32);
+        goto -> bb90;
+    }
+
+    bb90 (cleanup): {
+        StorageDead(_31);
+        StorageDead(_30);
+        goto -> bb92;
+    }
+
+    bb91 (cleanup): {
+        StorageDead(_28);
+        goto -> bb92;
+    }
+
+    bb92 (cleanup): {
+        StorageDead(_29);
+        StorageDead(_27);
+        StorageDead(_26);
+        StorageDead(_25);
+        drop(((_1 as variant#4).1: {async fn body of foo_3<i32>()})) -> [return: bb93, unwind terminate(cleanup)];
+    }
+
+    bb93 (cleanup): {
+        nop;
+        goto -> bb96;
+    }
+
+    bb94 (cleanup): {
+        goto -> bb95;
+    }
+
+    bb95 (cleanup): {
+        StorageDead(_23);
+        goto -> bb96;
+    }
+
+    bb96 (cleanup): {
+        StorageDead(_22);
+        goto -> bb97;
+    }
+
+    bb97 (cleanup): {
+        StorageDead(_21);
+        goto -> bb106;
+    }
+
+    bb98 (cleanup): {
+        StorageDead(_15);
+        goto -> bb99;
+    }
+
+    bb99 (cleanup): {
+        StorageDead(_14);
+        StorageDead(_13);
+        goto -> bb101;
+    }
+
+    bb100 (cleanup): {
+        StorageDead(_11);
+        goto -> bb101;
+    }
+
+    bb101 (cleanup): {
+        StorageDead(_12);
+        StorageDead(_10);
+        StorageDead(_9);
+        StorageDead(_8);
+        drop(((_1 as variant#3).0: {async fn body of foo_3<i32>()})) -> [return: bb102, unwind terminate(cleanup)];
+    }
+
+    bb102 (cleanup): {
+        nop;
+        goto -> bb105;
+    }
+
+    bb103 (cleanup): {
+        goto -> bb104;
+    }
+
+    bb104 (cleanup): {
+        StorageDead(_5);
+        goto -> bb105;
+    }
+
+    bb105 (cleanup): {
+        StorageDead(_4);
+        goto -> bb106;
+    }
+
+    bb106 (cleanup): {
+        nop;
+        goto -> bb107;
+    }
+
+    bb107 (cleanup): {
+        resume;
+    }
+
+    bb108 (cleanup): {
+        nop;
+        goto -> bb109;
+    }
+
+    bb109 (cleanup): {
+        StorageDead(_60);
+        StorageDead(_59);
+        goto -> bb112;
+    }
+
+    bb110 (cleanup): {
+        nop;
+        goto -> bb111;
+    }
+
+    bb111 (cleanup): {
+        StorageDead(_43);
+        goto -> bb112;
+    }
+
+    bb112 (cleanup): {
+        nop;
+        nop;
+        goto -> bb115;
+    }
+
+    bb113 (cleanup): {
+        nop;
+        goto -> bb114;
+    }
+
+    bb114 (cleanup): {
+        StorageDead(_22);
+        goto -> bb115;
+    }
+
+    bb115 (cleanup): {
+        StorageDead(_21);
+        goto -> bb118;
+    }
+
+    bb116 (cleanup): {
+        nop;
+        goto -> bb117;
+    }
+
+    bb117 (cleanup): {
+        StorageDead(_4);
+        goto -> bb118;
+    }
+
+    bb118 (cleanup): {
+        nop;
+        goto -> bb107;
+    }
+
+    bb119: {
+        return;
+    }
+
+    bb120: {
+        goto -> bb123;
+    }
+
+    bb121: {
+        goto -> bb49;
+    }
+
+    bb122: {
+        goto -> bb65;
+    }
+
+    bb123: {
+        goto -> bb119;
+    }
+}

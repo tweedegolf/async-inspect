@@ -1,0 +1,32 @@
+// MIR for `foo_3::{closure#0}` 0 coroutine_drop
+
+fn foo_3::{closure#0}(_1: *mut {async fn body of foo_3<T>()}) -> () {
+    debug _task_context => _5;
+    let mut _0: ();
+    let mut _2: &mut std::task::Context<'_>;
+    let mut _3: T;
+    let mut _4: T;
+    let mut _5: &mut std::task::Context<'_>;
+    let mut _6: u32;
+
+    bb0: {
+        _6 = discriminant((*_1));
+        switchInt(move _6) -> [0: bb2, otherwise: bb4];
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        goto -> bb3;
+    }
+
+    bb3: {
+        goto -> bb1;
+    }
+
+    bb4: {
+        return;
+    }
+}
