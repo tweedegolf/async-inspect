@@ -9,8 +9,11 @@ name = "async_inspect_gdb"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.98"
 log = "0.4.27"
-pyo3 = "0.25.0"
+pyo3 = { version = "0.25.0", features = ["anyhow"] }
 pyo3-log = "0.12.4"
 ratatui = { version = "0.29.0", default-features = false }
 termion = "4.0.5"
+
+dwarf_reader = { path = "../dwarf_reader" }
