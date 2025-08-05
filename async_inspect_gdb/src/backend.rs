@@ -11,4 +11,7 @@ pub trait Backend {
 
     /// Resume executing code on the target. Do nothing if aleardy executing.
     fn resume(&mut self) -> Result<()>;
+
+    /// Read `len` bytes at `addr`
+    fn read_memory(&mut self, addr: u64, len: u64) -> Result<Vec<u8>>;
 }

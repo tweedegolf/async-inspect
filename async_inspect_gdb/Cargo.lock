@@ -31,7 +31,7 @@ name = "async_inspect_gdb"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "dwarf_reader",
+ "ddbug_parser",
  "log",
  "pyo3",
  "pyo3-log",
@@ -141,13 +141,6 @@ dependencies = [
  "log",
  "memmap2",
  "object",
-]
-
-[[package]]
-name = "dwarf_reader"
-version = "0.1.0"
-dependencies = [
- "ddbug_parser",
 ]
 
 [[package]]

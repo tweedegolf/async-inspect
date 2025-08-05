@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use pyo3::{ffi::c_str, intern, prelude::*, types::PyDict};
+use pyo3::{
+    intern,
+    prelude::*,
+    types::{PyBytes, PyDict},
+};
 
 use crate::{
     backend::gdb_backend::gdb_ratatui_backend::GdbRatatuiBackend,
@@ -97,6 +101,21 @@ impl<'a, 'py> super::Backend for GdbBackend<'a, 'py> {
             .call_method1(intern!(py, "post_event"), (&continue_lambda_object,));
 
         Ok(())
+    }
+
+    fn read_memory(&mut self, addr: u64, len: u64) -> Result<Vec<u8>> {
+        let py = self.py;
+
+        let memory_view = self
+            .gdb
+            .call_method0(intern!(py, "selected_inferior"))?
+            .call_method1(intern!(py, "read_memory"), (addr, len))?;
+
+        let bytes = memory_view.call_method0(intern!(py, "tobytes"))?;
+        let bytes = bytes.downcast::<PyBytes>().map_err(PyErr::from)?;
+        let bytes = bytes.as_bytes().to_vec();
+
+        Ok(bytes)
     }
 }
 

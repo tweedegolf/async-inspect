@@ -16,11 +16,13 @@ bind_interrupts!(struct Irqs {
     RNG => rng::InterruptHandler<peripherals::RNG>;
 });
 
+static mut SEQUENCE: [u8; 1024] = [0u8; 1024];
+
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
 
-    let mut rng = rng::Rng::new(p.RNG, Irqs);
+    let rng = rng::Rng::new(p.RNG, Irqs);
 
     let mut leds = [
         Output::new(p.P0_13, Level::Low, OutputDrive::Standard),
@@ -28,7 +30,7 @@ async fn main(_spawner: Spawner) {
         Output::new(p.P0_15, Level::Low, OutputDrive::Standard),
         Output::new(p.P0_16, Level::Low, OutputDrive::Standard),
     ];
-    let mut buttons = [
+    let buttons = [
         Input::new(p.P0_11, Pull::Up),
         Input::new(p.P0_12, Pull::Up),
         Input::new(p.P0_24, Pull::Up),
@@ -37,7 +39,18 @@ async fn main(_spawner: Spawner) {
 
     leds.iter_mut().for_each(|l| l.set_high());
 
-    let mut sequence = [0u8; 1024];
+    let sequence = unsafe { &mut *&raw mut SEQUENCE };
+
+    _spawner.must_spawn(game(rng, leds, buttons, sequence));
+}
+
+#[embassy_executor::task]
+async fn game(
+    mut rng: rng::Rng<'static, peripherals::RNG, embassy_nrf::mode::Async>,
+    mut leds: [Output<'static>; 4],
+    mut buttons: [Input<'static>; 4],
+    sequence: &'static mut [u8; 1024],
+) -> ! {
     let mut len;
 
     loop {
