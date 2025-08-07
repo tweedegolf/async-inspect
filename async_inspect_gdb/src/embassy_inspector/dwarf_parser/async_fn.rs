@@ -529,7 +529,7 @@ pub unsafe fn describe_async_fn(
 
     let future_type = async_fns
         .iter()
-        .find(|async_fn| async_fn.path == awaitee.name);
+        .find(|async_fn| async_fn.path == awaitee.type_name);
 
     let bytes = unsafe { bytes.offset(awaitee.offset as isize) };
     match future_type {

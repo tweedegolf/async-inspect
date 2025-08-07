@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow, bail};
 
 use async_fn::AsyncFnType;
 use ddbug_parser::FileHash;
@@ -40,6 +40,8 @@ fn from_namespace_and_name(
 
 #[derive(Debug, Clone)]
 pub(crate) struct DebugData {
+    pub(crate) poll_done_addres: u64,
+
     pub(crate) async_fn_types: Vec<AsyncFnType>,
     pub(crate) task_pools: Vec<task_pool::TaskPool>,
 }
@@ -75,7 +77,34 @@ impl DebugData {
         task_pools
             .sort_unstable_by_key(|task| std::cmp::Reverse(task.async_fn_type.layout.total_size));
 
+        // embassy_executor::raw::{impl#9}::poll::{closure#0}
+        let mut poll_done_address = None;
+        for unit in file.units() {
+            for unit_fn in unit.functions() {
+                if let Some(name) = unit_fn.name()
+                    && name.contains("{closure")
+                    && let Some(linkage_name) = unit_fn.linkage_name()
+                    && linkage_name.contains("SyncExecutor")
+                    && let Some(namespace) = unit_fn.namespace()
+                    && let namespace = namespace_to_path(namespace)
+                    && namespace.starts_with("embassy_executor::raw")
+                    && namespace.ends_with("poll")
+                {
+                    if let [range] = unit_fn.ranges() {
+                        poll_done_address = Some(range.end - 4);
+                    } else if unit_fn.is_inline() {
+                        // TODO: Find solution for this situation.
+                        bail!("Poll function got inlined");
+                    }
+                }
+            }
+        }
+
+        let poll_done_addres =
+            poll_done_address.ok_or(anyhow!("Could not find polling function in debug data"))?;
+
         Ok(Self {
+            poll_done_addres,
             task_pools,
             async_fn_types,
         })

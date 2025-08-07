@@ -68,7 +68,7 @@ impl<'a, 'py> super::Backend for GdbBackend<'a, 'py> {
             }))
     }
 
-    fn set_breakpoint(&mut self, function_name: &str) -> Result<u64> {
+    fn set_breakpoint(&mut self, addr: u64) -> Result<u64> {
         let py = self.py;
 
         let breakpoint = self.main.getattr(intern!(py, "PyO3Breakpoint"))?;
@@ -76,8 +76,9 @@ impl<'a, 'py> super::Backend for GdbBackend<'a, 'py> {
 
         let kwargs = PyDict::new(py);
         kwargs.set_item(intern!(py, "internal"), true)?;
+        kwargs.set_item(intern!(py, "type"), breakpoint_type)?;
 
-        let breakpoint = breakpoint.call((function_name, breakpoint_type), Some(&kwargs))?;
+        let breakpoint = breakpoint.call((format!("*{addr}"),), Some(&kwargs))?;
 
         let id = breakpoint.hash()? as usize as u64;
         self.breakpoint_reg.insert(id, breakpoint.unbind());

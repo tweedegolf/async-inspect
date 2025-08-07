@@ -1,8 +1,7 @@
 mod dwarf_parser;
 
 use anyhow::{Result, anyhow};
-use dwarf_parser::async_fn::AsyncFnType;
-use ratatui::{Terminal, text::Text, widgets::Paragraph};
+use ratatui::{Terminal, text::Text};
 
 use crate::{
     backend::Backend,
@@ -35,8 +34,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
 
         let debug_data = DebugData::from_object_file(object_file)?;
 
-        let poll_break_point =
-            backend.set_breakpoint("embassy_executor::raw::SyncExecutor::poll::{{closure}}")?;
+        let poll_break_point = backend.set_breakpoint(debug_data.poll_done_addres)?;
 
         Ok(Self {
             terminal: Terminal::new(ratatui_backend)?,
