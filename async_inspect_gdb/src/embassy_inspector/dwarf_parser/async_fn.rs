@@ -544,3 +544,109 @@ pub unsafe fn describe_async_fn(
         }
     }
 }
+
+#[derive(Debug)]
+pub(crate) enum FutureValue {
+    AsyncFn(AsyncFnValue),
+    Unknown { name: String, bytes: Vec<u8> },
+}
+
+#[derive(Debug)]
+pub(crate) struct MemberValue {
+    pub(crate) member: Member,
+    pub(crate) bytes: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub(crate) struct StateValue {
+    pub(crate) state: State,
+
+    pub(crate) members: Vec<MemberValue>,
+    pub(crate) awaitee: Option<Box<FutureValue>>,
+}
+
+impl StateValue {
+    fn new(state: &State, bytes: &[u8], layout: &Layout, async_fns: &[AsyncFnType]) -> Self {
+        let mut members = Vec::new();
+
+        for member in &state.active_members {
+            let member = &layout.members[*member];
+
+            let bytes = bytes[member.offset as usize..][..member.size as usize].to_vec();
+
+            members.push(MemberValue {
+                member: member.clone(),
+                bytes,
+            });
+        }
+
+        let awaitee = state.awaitee.as_ref().map(|awaitee| {
+            let future_type = async_fns
+                .iter()
+                .find(|async_fn| async_fn.path == awaitee.type_name);
+
+            let bytes = &bytes[awaitee.offset as usize..][..awaitee.size as usize];
+
+            let future_value = match future_type {
+                Some(async_fn_type) => {
+                    FutureValue::AsyncFn(AsyncFnValue::new(async_fn_type, bytes, async_fns))
+                }
+                None => FutureValue::Unknown {
+                    name: awaitee.type_name.clone(),
+                    bytes: bytes.to_vec(),
+                },
+            };
+
+            Box::new(future_value)
+        });
+
+        Self {
+            state: state.clone(),
+            members,
+            awaitee,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct AsyncFnValue {
+    pub(crate) ty: AsyncFnType,
+
+    /// Err value is the found discriminat value that does not have a coresponding State
+    pub(crate) state_value: std::result::Result<StateValue, u64>,
+}
+
+impl AsyncFnValue {
+    pub(crate) fn new(
+        async_fn_type: &AsyncFnType,
+        bytes: &[u8],
+        async_fns: &[AsyncFnType],
+    ) -> Self {
+        let layout = &async_fn_type.layout;
+
+        let state_discriminant = {
+            let bytes = &bytes[layout.state_member.offset as usize..];
+            match layout.state_member.size {
+                1 => u8::from_le_bytes(bytes[..1].try_into().unwrap()) as u64,
+                2 => u16::from_le_bytes(bytes[..2].try_into().unwrap()) as u64,
+                4 => u32::from_le_bytes(bytes[..4].try_into().unwrap()) as u64,
+                8 => u64::from_le_bytes(bytes[..8].try_into().unwrap()),
+                _ => unreachable!(),
+            }
+        };
+
+        let state = layout
+            .states
+            .iter()
+            .find(|s| s.discriminant_value == state_discriminant);
+
+        let state_value = state
+            .map(|s| StateValue::new(s, bytes, layout, async_fns))
+            .ok_or(state_discriminant);
+
+        Self {
+            ty: async_fn_type.clone(),
+            state_value,
+        }
+    }
+}

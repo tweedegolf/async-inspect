@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use anyhow::{Result, anyhow, bail};
 
-use async_fn::AsyncFnType;
 use ddbug_parser::FileHash;
+
+use async_fn::AsyncFnType;
+use task_pool::{TaskPool, TaskPoolValue};
 
 pub mod async_fn;
 pub mod task_pool;
@@ -40,10 +42,10 @@ fn from_namespace_and_name(
 
 #[derive(Debug, Clone)]
 pub(crate) struct DebugData {
-    pub(crate) poll_done_addres: u64,
+    pub(crate) poll_done_addresses: Vec<u64>,
 
     pub(crate) async_fn_types: Vec<AsyncFnType>,
-    pub(crate) task_pools: Vec<task_pool::TaskPool>,
+    pub(crate) task_pools: Vec<TaskPool>,
 }
 
 impl DebugData {
@@ -67,7 +69,7 @@ impl DebugData {
         for unit in file.units() {
             for unit_var in unit.variables() {
                 if let Some(task_pool) =
-                    task_pool::TaskPool::from_ddbug_var(unit_var, &async_fn_types, &file_hash)
+                    TaskPool::from_ddbug_var(unit_var, &async_fn_types, &file_hash)
                 {
                     task_pools.insert(task_pool.path.clone(), task_pool);
                 }
@@ -77,9 +79,30 @@ impl DebugData {
         task_pools
             .sort_unstable_by_key(|task| std::cmp::Reverse(task.async_fn_type.layout.total_size));
 
-        // embassy_executor::raw::{impl#9}::poll::{closure#0}
-        let mut poll_done_address = None;
-        for unit in file.units() {
+        let poll_done_addresses = find_poll_function_addresses(&file_hash);
+        if poll_done_addresses.is_empty() {
+            log::warn!(
+                "Could't not find the poll function, manualy break the target to update the display"
+            );
+        }
+
+        Ok(Self {
+            poll_done_addresses,
+            task_pools,
+            async_fn_types,
+        })
+    }
+
+    pub(crate) fn get_taskpool_value(&self, task_pool: &TaskPool, bytes: &[u8]) -> TaskPoolValue {
+        TaskPoolValue::new(task_pool, bytes, &self.async_fn_types)
+    }
+}
+
+fn find_poll_function_addresses(file_hash: &FileHash) -> Vec<u64> {
+    // Searches for a function with the path: embassy_executor::raw::{impl#9}::poll::{closure#0}
+    // where #9 can be replaced with anything.
+    let poll_function = 'main: {
+        for unit in file_hash.file.units() {
             for unit_fn in unit.functions() {
                 if let Some(name) = unit_fn.name()
                     && name.contains("{closure")
@@ -91,22 +114,64 @@ impl DebugData {
                     && namespace.ends_with("poll")
                 {
                     if let [range] = unit_fn.ranges() {
-                        poll_done_address = Some(range.end - 4);
+                        return vec![range.end - 4];
                     } else if unit_fn.is_inline() {
-                        // TODO: Find solution for this situation.
-                        bail!("Poll function got inlined");
+                        break 'main unit_fn;
                     }
                 }
             }
         }
+        return Vec::new();
+    };
 
-        let poll_done_addres =
-            poll_done_address.ok_or(anyhow!("Could not find polling function in debug data"))?;
+    // Poll function got inlined, search all functions for where it ended up.
+    let mut addresses = Vec::new();
+    for unit in file_hash.file.units() {
+        for unit_fn in unit.functions() {
+            let details = unit_fn.details(file_hash);
 
-        Ok(Self {
-            poll_done_addres,
-            task_pools,
-            async_fn_types,
-        })
+            for inlined_function in details.inlined_functions() {
+                find_function_in_inlined(
+                    poll_function,
+                    inlined_function,
+                    file_hash,
+                    &mut addresses,
+                );
+            }
+        }
+    }
+
+    return addresses;
+}
+
+/// Recursivly look for all locations the given function is inlined into the givven inlined_function.
+/// Adds the last address to the found_addresses.
+fn find_function_in_inlined(
+    function: &ddbug_parser::Function,
+    inlined_function: &ddbug_parser::InlinedFunction,
+    file_hash: &FileHash,
+    found_addresses: &mut Vec<u64>,
+) {
+    if let Some(resolved_inlined_function) = inlined_function.abstract_origin(file_hash)
+        && ddbug_parser::Function::<'_>::cmp_id(
+            file_hash,
+            resolved_inlined_function,
+            file_hash,
+            function,
+        )
+        .is_eq()
+    {
+        for range in inlined_function.ranges() {
+            if range.begin == 0 {
+                // Strange bug where every inlined funciton also has a range staring at 0.
+                // Just ignoring it here.
+                continue;
+            }
+            found_addresses.push(range.end);
+        }
+    }
+
+    for inlined_function in inlined_function.inlined_functions() {
+        find_function_in_inlined(function, inlined_function, file_hash, found_addresses);
     }
 }

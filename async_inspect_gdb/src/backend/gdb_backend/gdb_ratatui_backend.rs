@@ -18,7 +18,6 @@ impl TuiWindow {
     }
 
     //// Get the width and height in characters of the window.
-    #[expect(dead_code)]
     fn get_size(&self, py: Python) -> PyResult<(u32, u32)> {
         let width = self.0.getattr(py, intern!(py, "width"))?.extract(py)?;
         let height = self.0.getattr(py, intern!(py, "height"))?.extract(py)?;

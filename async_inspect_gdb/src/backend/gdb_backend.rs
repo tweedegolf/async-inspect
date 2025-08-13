@@ -26,8 +26,6 @@ struct GdbBackend<'a, 'py> {
     gdb: Bound<'py, PyModule>,
     main: Bound<'py, PyModule>,
 
-    should_resume: bool,
-
     breakpoint_reg: &'a mut HashMap<u64, PyObject>,
 }
 
@@ -40,8 +38,6 @@ impl<'a, 'py> GdbBackend<'a, 'py> {
             py,
             gdb,
             main,
-
-            should_resume: false,
 
             breakpoint_reg,
         })
@@ -156,21 +152,32 @@ impl GdbTui {
     /// In some situations, a TUI window can change size. For example, this can happen if the user resizes the terminal, or changes the layout. When this happens, GDB will call the render method on the window object.
     /// If your window is intended to update in response to changes in the inferior, you will probably also want to register event listeners and send output to the gdb.TuiWindow.
     fn render(&mut self, py: Python) -> PyResult<()> {
-        let mut backend = GdbBackend::new(py, &mut self.breakpoint_reg)?;
-        self.inspector.handle_event(Event::Redraw, &mut backend)?;
-        Ok(())
+        self.send_event(Event::Redraw, py)
     }
 
     /// This is a request to scroll the window horizontally. num is the amount by which to scroll, with negative numbers meaning to scroll right. In the TUI model, it is the viewport that moves, not the contents. A positive argument should cause the viewport to move right, and so the content should appear to move to the left.
-    fn hscroll(&self, num: i32) {}
+    fn hscroll(&self, _num: i32) {}
 
     /// This is a request to scroll the window vertically. num is the amount by which to scroll, with negative numbers meaning to scroll backward. In the TUI model, it is the viewport that moves, not the contents. A positive argument should cause the viewport to move down, and so the content should appear to move up.
-    fn vscroll(&self, num: i32) {}
+    fn vscroll(&mut self, num: i32, py: Python) -> PyResult<()> {
+        self.send_event(Event::Scroll(num), py)
+    }
 
     /// This is called on a mouse click in this window. x and y are the mouse coordinates inside the window (0-based, from the top left corner), and button specifies which mouse button was used, whose values can be 1 (left), 2 (middle), or 3 (right).
     /// When TUI mouse events are disabled by turning off the tui mouse-events setting (see set tui mouse-events), then click will not be called.
-    fn click(&self, x: i32, y: i32, button: u8, py: Python) -> PyResult<()> {
-        Ok(())
+    fn click(&mut self, x: i32, y: i32, _button: u8, py: Python) -> PyResult<()> {
+        let button = match _button {
+            1 => crate::embassy_inspector::ClickButton::Left,
+            2 => crate::embassy_inspector::ClickButton::Middle,
+            3 => crate::embassy_inspector::ClickButton::Right,
+            other => {
+                log::error!("Unknown button id: {other}");
+                return Ok(());
+            }
+        };
+        let pos = ratatui::layout::Position::new(x as u16, y as u16);
+
+        self.send_event(Event::Click(pos, button), py)
     }
 
     fn stop_event(&mut self, event: PyObject, py: Python) -> PyResult<()> {
@@ -188,11 +195,17 @@ impl GdbTui {
             }
         }
 
-        let mut backend = GdbBackend::new(py, &mut self.breakpoint_reg)?;
         for event in events {
-            self.inspector.handle_event(event, &mut backend)?;
+            self.send_event(event, py)?;
         }
+        Ok(())
+    }
+}
 
+impl GdbTui {
+    fn send_event(&mut self, event: Event, py: Python) -> PyResult<()> {
+        let mut backend = GdbBackend::new(py, &mut self.breakpoint_reg)?;
+        self.inspector.handle_event(event, &mut backend)?;
         Ok(())
     }
 }

@@ -1,4 +1,7 @@
-use super::{async_fn::AsyncFnType, namespace_to_path};
+use super::{
+    async_fn::{AsyncFnType, AsyncFnValue},
+    namespace_to_path,
+};
 
 use ddbug_parser::FileHash;
 
@@ -91,5 +94,38 @@ impl TaskPool {
             number_of_tasks,
             async_fn_type,
         })
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct TaskPoolValue {
+    pub(crate) task_pool: TaskPool,
+
+    pub(crate) async_fn_values: Vec<AsyncFnValue>,
+}
+
+impl TaskPoolValue {
+    pub(crate) fn new(task_pool: &TaskPool, bytes: &[u8], async_fns: &[AsyncFnType]) -> Self {
+        assert_eq!(bytes.len() as u64, task_pool.size);
+        let mut async_fn_values = Vec::new();
+
+        let len_single_task = task_pool.size / task_pool.number_of_tasks as u64;
+
+        for task in 0..task_pool.number_of_tasks {
+            let bytes_offset = len_single_task + task as u64 * len_single_task
+                - task_pool.async_fn_type.layout.total_size;
+            let bytes = &bytes[bytes_offset as usize..];
+
+            async_fn_values.push(AsyncFnValue::new(
+                &task_pool.async_fn_type,
+                bytes,
+                async_fns,
+            ))
+        }
+
+        Self {
+            task_pool: task_pool.clone(),
+            async_fn_values,
+        }
     }
 }
