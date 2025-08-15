@@ -165,8 +165,8 @@ impl GdbTui {
 
     /// This is called on a mouse click in this window. x and y are the mouse coordinates inside the window (0-based, from the top left corner), and button specifies which mouse button was used, whose values can be 1 (left), 2 (middle), or 3 (right).
     /// When TUI mouse events are disabled by turning off the tui mouse-events setting (see set tui mouse-events), then click will not be called.
-    fn click(&mut self, x: i32, y: i32, _button: u8, py: Python) -> PyResult<()> {
-        let button = match _button {
+    fn click(&mut self, x: i32, y: i32, button: u8, py: Python) -> PyResult<()> {
+        let button = match button {
             1 => crate::embassy_inspector::ClickButton::Left,
             2 => crate::embassy_inspector::ClickButton::Middle,
             3 => crate::embassy_inspector::ClickButton::Right,

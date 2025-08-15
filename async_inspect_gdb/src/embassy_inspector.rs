@@ -22,6 +22,7 @@ pub struct Click {
     pub button: ClickButton,
 }
 
+#[derive(Debug)]
 pub enum Event {
     /// Window was resized of made invalid for a diffrent reason and needs te be redrawn.
     Redraw,
@@ -60,7 +61,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
             poll_break_point_ids.push(id);
         }
 
-        Ok(Self {
+        let mut s = Self {
             terminal: Terminal::new(ratatui_backend)?,
             poll_break_point_ids,
 
@@ -68,7 +69,9 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
 
             debug_data,
             last_values: Vec::new(),
-        })
+        };
+        s.update_values(backend);
+        Ok(s)
     }
 
     fn update_values<B: Backend>(&mut self, backend: &mut B) {

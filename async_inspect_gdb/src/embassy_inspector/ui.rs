@@ -8,9 +8,15 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::scroll_view::ScrollView;
+use crate::{embassy_inspector::dwarf_parser::async_fn::Member, scroll_view::ScrollView};
 
-use super::{Click, ClickButton, dwarf_parser::task_pool::TaskPoolValue};
+use super::{
+    Click, ClickButton,
+    dwarf_parser::{
+        async_fn::{AsyncFnType, AsyncFnValue},
+        task_pool::TaskPoolValue,
+    },
+};
 
 fn is_clicked_left(area: &Rect, click: Option<Click>) -> bool {
     match click {
@@ -78,14 +84,24 @@ impl UiPage for MainMenu {
 
         let mut scroll_view = ScrollView::new(rest.as_size(), self.scroll);
         for (i, pool) in values.iter().enumerate() {
-            let mut text = Text::from(vec![
-                Line::from(vec![
-                    Span::from("Pool size: "),
-                    pool.task_pool.number_of_tasks.to_string().light_blue(),
-                ]),
-                Line::from("Future state machine:"),
-            ]);
-            text.extend(Text::from(pool.task_pool.async_fn_type.layout.to_string()));
+            let mut text = Text::from(Line::from_iter([
+                Span::from("Pool size: "),
+                pool.task_pool.number_of_tasks.to_string().light_blue(),
+            ]));
+
+            if let [value] = pool.async_fn_values.as_slice() {
+                text.push_line(Line::from("Future value:"));
+                text.extend(async_fn_to_text(&pool.task_pool.async_fn_type, Some(value)));
+            } else {
+                text.push_line(Line::from("Future state machine alyout:"));
+                text.extend(
+                    async_fn_to_text(&pool.task_pool.async_fn_type, None)
+                        .into_iter()
+                        .map(|l| l.gray()),
+                );
+                text.push_line(Line::from("Click to see individual tasks"));
+            }
+
             let height = text.height() + 2;
 
             let text = Paragraph::new(text)
@@ -143,10 +159,14 @@ impl UiPage for TaskPool {
         let pool = &values[self.pool_idx];
 
         let mut scroll_view = ScrollView::new(area.as_size(), self.scroll);
-        for (_i, value) in pool.async_fn_values.iter().enumerate() {
-            let text = Text::from(format!("{:?}\n", value.state_value));
+        for (i, value) in pool.async_fn_values.iter().enumerate() {
+            let text = async_fn_to_text(&value.ty, Some(value));
 
-            scroll_view.render_next_widget(&text, text.height() as u16);
+            let height = text.height() + 2;
+            let text = Paragraph::new(text)
+                .block(Block::bordered().title(format!("Task {i}").light_blue()));
+
+            let _area = scroll_view.render_next_widget(&text, height as u16);
         }
 
         if scroll_view.max_scroll() < self.scroll {
@@ -213,7 +233,7 @@ impl UiState {
                 return Err(UiEvent::Back);
             }
 
-            let back = Line::styled("Back", Modifier::UNDERLINED)
+            let back = Line::raw("Back")
                 .alignment(ratatui::layout::Alignment::Center)
                 .black()
                 .on_white();
@@ -252,4 +272,96 @@ impl UiState {
 
         self.top().draw(frame, rest_area, click, values)
     }
+}
+
+fn async_fn_to_text<'a>(ty: &'a AsyncFnType, value: Option<&AsyncFnValue>) -> Text<'a> {
+    let seperator: Span<'static> = Span::raw(" | ");
+
+    let mut member_positions = Vec::new();
+
+    let mut members_line: Line<'a> = Line::default();
+    let mut members_current_col = 0;
+    let mut add_col = |span: Span<'static>| {
+        let span_size = span.content.len();
+        let col = members_current_col;
+
+        members_line.push_span(span);
+        members_line.push_span(seperator.clone());
+
+        members_current_col += span_size + seperator.content.len();
+
+        (col, span_size)
+    };
+
+    add_col(Span::raw("           "));
+
+    let mut add_member = |member: &Member| {
+        add_col(Span::raw(format!(
+            "{}[{}] {}",
+            member.offset, member.size, member.name
+        )))
+    };
+
+    for member in &ty.layout.members {
+        let pos = add_member(member);
+        member_positions.push(pos);
+    }
+    let state_pos = add_member(&ty.layout.state_member);
+
+    let awaitee_pos = add_col(Span::raw("awaitee"));
+
+    let mut text = Text::from_iter([members_line, Line::default()]);
+
+    for state in &ty.layout.states {
+        let (name, highlight) = if let Some(value) = value
+            && let Ok(state_value) = &value.state_value
+            && state_value.state.discriminant_value == state.discriminant_value
+        {
+            (format!("> {}", state.name), true)
+        } else {
+            (format!("  {}", state.name), false)
+        };
+
+        let mut current_col = name.len();
+        let mut line = Line::raw(name);
+
+        for active_members in &state.active_members {
+            let (col, len) = member_positions[*active_members];
+
+            line.push_span(Span::from(" ".repeat(col - current_col)));
+            current_col = col;
+            line.push_span(Span::from("-".repeat(len)));
+            current_col += len;
+        }
+
+        line.push_span(Span::from(" ".repeat(state_pos.0 - current_col)));
+        let discriminant = state.discriminant_value.to_string();
+        line.push_span(Span::from(discriminant.clone()));
+        line.push_span(Span::from(" ".repeat(state_pos.1 - discriminant.len())));
+        current_col = state_pos.0 + state_pos.1;
+
+        if let Some(awaitee) = &state.awaitee {
+            line.push_span(Span::from(" ".repeat(awaitee_pos.0 - current_col)));
+            line.push_span(Span::from(format!(
+                "{}[{}] {}",
+                awaitee.offset, awaitee.size, awaitee.type_name
+            )));
+        }
+
+        if highlight {
+            text.push_line(line.on_blue());
+        } else {
+            text.push_line(line);
+        }
+    }
+    text.push_line(Line::default());
+
+    for member in &ty.layout.members {
+        text.push_line(Line::raw(format!(
+            "{:>2}[{}] {:<15}: {}",
+            member.offset, member.size, member.name, member.type_name
+        )));
+    }
+
+    text
 }
