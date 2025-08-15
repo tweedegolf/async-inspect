@@ -267,23 +267,14 @@ impl std::fmt::Display for Layout {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut member_pos = Vec::new();
 
-        let mut members_line1 = String::from("          | ");
-        let mut members_line2 = String::from("          | ");
+        let mut members_line = String::from("          | ");
 
-        let mut add_col = |line1: &str, line2: &str| {
-            let max_size = line1.len().max(line2.len());
+        let mut add_col = |line: &str| {
+            let col = members_line.len();
+            members_line.push_str(line);
+            members_line.push_str(" | ");
 
-            let col = members_line1.len();
-            members_line1.push_str(line1);
-            members_line2.push_str(line2);
-
-            members_line1.push_str(&" ".repeat(max_size - line1.len()));
-            members_line2.push_str(&" ".repeat(max_size - line2.len()));
-
-            members_line1.push_str(" | ");
-            members_line2.push_str(" | ");
-
-            (col, max_size)
+            (col, line.len())
         };
 
         // let mut byte_offset = 0;
@@ -298,10 +289,10 @@ impl std::fmt::Display for Layout {
 
             // byte_offset += member.size;
 
-            add_col(
-                &format!("{}: {}", member.name, member.type_name),
-                &format!("{}[{}]", member.offset, member.size),
-            )
+            add_col(&format!(
+                "{}[{}] {}",
+                member.offset, member.size, member.name
+            ))
         };
 
         for member in &self.members {
@@ -310,10 +301,9 @@ impl std::fmt::Display for Layout {
         }
         let state_pos = add_member(&self.state_member);
 
-        let awaitee_pos = add_col("awaitee", "");
+        let awaitee_pos = add_col("awaitee");
 
-        writeln!(f, "{members_line1}")?;
-        writeln!(f, "{members_line2}")?;
+        writeln!(f, "{members_line}")?;
         writeln!(f, "")?;
 
         for state in &self.states {
@@ -348,6 +338,15 @@ impl std::fmt::Display for Layout {
                     writeln!(f, "")?;
                 }
             }
+        }
+        writeln!(f, "")?;
+
+        for member in &self.members {
+            writeln!(
+                f,
+                "{}[{}] {:<15}: {}",
+                member.offset, member.size, member.name, member.type_name
+            )?;
         }
 
         Ok(())
@@ -401,147 +400,6 @@ impl std::fmt::Display for AsyncFnType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}", self.path)?;
         writeln!(f, "{}", self.layout)
-    }
-}
-
-unsafe fn print_bytes(bytes: *const u8, length: u64, w: &mut impl Write) {
-    for i in 0..length {
-        let b = unsafe { *bytes.offset(i as isize) };
-        write!(w, "{b:02x} ").ok();
-    }
-}
-
-unsafe fn describe_member(member: &Member, bytes: *const u8, padding: &str, w: &mut impl Write) {
-    write!(w, "{padding} - {}: {} = ", member.name, member.type_name).ok();
-    unsafe {
-        let bytes = bytes.offset(member.offset as isize);
-        match member.type_name.as_str() {
-            "bool" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &bool>(bytes)).ok();
-            }
-            "u8" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &u8>(bytes)).ok();
-            }
-            "i8" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &i8>(bytes)).ok();
-            }
-            "u16" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &u16>(bytes)).ok();
-            }
-            "i16" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &i16>(bytes)).ok();
-            }
-            "u32" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &u32>(bytes)).ok();
-            }
-            "i32" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &i32>(bytes)).ok();
-            }
-            "u64" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &u64>(bytes)).ok();
-            }
-            "i64" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &i64>(bytes)).ok();
-            }
-            "u128" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &u128>(bytes)).ok();
-            }
-            "i128" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &i128>(bytes)).ok();
-            }
-            "f32" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &f32>(bytes)).ok();
-            }
-            "f64" => {
-                writeln!(w, "{:?}", std::mem::transmute::<_, &f64>(bytes)).ok();
-            }
-            _ => {
-                write!(w, "bytes = ",).ok();
-                print_bytes(bytes, member.size, w);
-                writeln!(w, "").ok();
-            }
-        }
-    }
-}
-
-pub unsafe fn describe_async_fn(
-    layout: &Layout,
-    bytes: *const u8,
-    padding: &str,
-    async_fns: &[AsyncFnType],
-    w: &mut impl Write,
-) {
-    let state_member = &layout.state_member;
-    let state_discriminant = unsafe {
-        let bytes = bytes.offset(state_member.offset as isize);
-        match state_member.size {
-            1 => std::ptr::read_unaligned(bytes as *const u8) as u64,
-            2 => std::ptr::read_unaligned(bytes as *const u16) as u64,
-            4 => std::ptr::read_unaligned(bytes as *const u32) as u64,
-            8 => std::ptr::read_unaligned(bytes as *const u64),
-            _ => unreachable!(),
-        }
-    };
-
-    let state = layout
-        .states
-        .iter()
-        .find(|s| s.discriminant_value == state_discriminant);
-    let Some(state) = state else {
-        let valid_states = layout
-            .states
-            .iter()
-            .map(|s| s.discriminant_value)
-            .collect::<Vec<_>>();
-        writeln!(
-            w,
-            "Future has invalid state discriminant: {state_discriminant}. Valid states are: {:?}",
-            valid_states
-        )
-        .ok();
-        return;
-    };
-
-    writeln!(
-        w,
-        "{padding}it has a discriminant of {} corrosponding to a state of {} and has the members:",
-        state_discriminant, state.name
-    )
-    .ok();
-
-    for member in &state.active_members {
-        let member = &layout.members[*member];
-        unsafe {
-            describe_member(member, bytes, padding, w);
-        }
-    }
-
-    let Some(awaitee) = &state.awaitee else {
-        return;
-    };
-
-    writeln!(
-        w,
-        "{padding}and is waiting on the interior Future {}:",
-        awaitee.type_name
-    )
-    .ok();
-
-    let future_type = async_fns
-        .iter()
-        .find(|async_fn| async_fn.path == awaitee.type_name);
-
-    let bytes = unsafe { bytes.offset(awaitee.offset as isize) };
-    match future_type {
-        Some(future_type) => unsafe {
-            let s = format!("{padding}  ");
-            describe_async_fn(&future_type.layout, bytes, &s, async_fns, w);
-        },
-        None => {
-            write!(w, "{padding}  bytes = ",).ok();
-            unsafe { print_bytes(bytes, awaitee.size, w) };
-            writeln!(w, "").ok();
-        }
     }
 }
 

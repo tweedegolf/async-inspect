@@ -9,7 +9,7 @@ use pyo3::{
 
 use crate::{
     backend::gdb_backend::gdb_ratatui_backend::GdbRatatuiBackend,
-    embassy_inspector::{EmbassyInspector, Event},
+    embassy_inspector::{Click, EmbassyInspector, Event},
 };
 
 pub mod gdb_ratatui_backend;
@@ -176,8 +176,9 @@ impl GdbTui {
             }
         };
         let pos = ratatui::layout::Position::new(x as u16, y as u16);
+        let click = Click { pos, button };
 
-        self.send_event(Event::Click(pos, button), py)
+        self.send_event(Event::Click(click), py)
     }
 
     fn stop_event(&mut self, event: PyObject, py: Python) -> PyResult<()> {

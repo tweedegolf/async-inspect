@@ -1,5 +1,6 @@
 pub mod backend;
 pub mod embassy_inspector;
+mod scroll_view;
 
 use pyo3::prelude::*;
 
