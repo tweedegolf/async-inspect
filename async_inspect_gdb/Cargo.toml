@@ -17,3 +17,4 @@ ratatui = { version = "0.29.0", default-features = false }
 termion = "4.0.5"
 
 ddbug_parser = "0.4.0"
+ansi-to-tui = "7.0.0"

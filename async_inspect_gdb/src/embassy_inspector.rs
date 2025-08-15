@@ -9,6 +9,8 @@ use dwarf_parser::{DebugData, task_pool::TaskPoolValue};
 
 use ui::UiState;
 
+use self::ui::UiDrawCtx;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ClickButton {
     Left,
@@ -115,13 +117,19 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
         };
 
         self.terminal.draw(|frame| {
-            let mut click = click;
+            let mut ctx = UiDrawCtx {
+                frame,
+                click,
+                values: &self.last_values,
+                try_format_value: &mut |b, ty| backend.try_format_value(b, ty),
+            };
 
-            while let Err(event) = self.ui_state.draw(frame, click, &self.last_values) {
+            while let Err(event) = self.ui_state.draw(&mut ctx) {
                 self.ui_state.apply_event(event);
-                click = None;
+                ctx.click = None;
 
-                frame.render_widget(ratatui::widgets::Clear, frame.area());
+                ctx.frame
+                    .render_widget(ratatui::widgets::Clear, ctx.frame.area());
             }
         })?;
 

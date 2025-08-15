@@ -114,6 +114,26 @@ impl<'a, 'py> super::Backend for GdbBackend<'a, 'py> {
 
         Ok(bytes)
     }
+
+    fn try_format_value(&mut self, bytes: &[u8], type_name: &str) -> Option<String> {
+        let py = self.py;
+
+        let gdb_type = self
+            .gdb
+            .call_method1(intern!(py, "lookup_type"), (type_name,))
+            .ok()?;
+
+        let value = self.gdb.getattr(intern!(py, "Value")).ok()?;
+        let value = value.call1((bytes, gdb_type)).ok()?;
+
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(intern!(py, "styling"), true).ok()?;
+
+        let value = value
+            .call_method(intern!(py, "format_string"), (), Some(&kwargs))
+            .ok()?;
+        value.extract().ok()
+    }
 }
 
 #[pymethods]

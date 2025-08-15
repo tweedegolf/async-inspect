@@ -263,96 +263,6 @@ impl Layout {
     }
 }
 
-impl std::fmt::Display for Layout {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut member_pos = Vec::new();
-
-        let mut members_line = String::from("          | ");
-
-        let mut add_col = |line: &str| {
-            let col = members_line.len();
-            members_line.push_str(line);
-            members_line.push_str(" | ");
-
-            (col, line.len())
-        };
-
-        // let mut byte_offset = 0;
-        let mut add_member = |member: &Member| {
-            // if member.offset != byte_offset {
-            //     add_col(
-            //         "<padding>",
-            //         &format!("{} bytes", member.offset - byte_offset),
-            //     );
-            //     byte_offset = member.offset;
-            // }
-
-            // byte_offset += member.size;
-
-            add_col(&format!(
-                "{}[{}] {}",
-                member.offset, member.size, member.name
-            ))
-        };
-
-        for member in &self.members {
-            let pos = add_member(member);
-            member_pos.push(pos);
-        }
-        let state_pos = add_member(&self.state_member);
-
-        let awaitee_pos = add_col("awaitee");
-
-        writeln!(f, "{members_line}")?;
-        writeln!(f, "")?;
-
-        for state in &self.states {
-            write!(f, "{}", &state.name)?;
-            let mut current_col = state.name.len();
-
-            for active_members in &state.active_members {
-                let (col, len) = member_pos[*active_members];
-
-                write!(f, "{}", " ".repeat(col - current_col))?;
-                current_col = col;
-                write!(f, "{}", "-".repeat(len))?;
-                current_col += len;
-            }
-
-            write!(f, "{}", " ".repeat(state_pos.0 - current_col))?;
-            let discriminant = state.discriminant_value.to_string();
-            write!(f, "{}", discriminant)?;
-            write!(f, "{}", " ".repeat(state_pos.1 - discriminant.len()))?;
-            current_col = state_pos.0 + state_pos.1;
-
-            match &state.awaitee {
-                Some(awaitee) => {
-                    write!(f, "{}", " ".repeat(awaitee_pos.0 - current_col))?;
-                    writeln!(
-                        f,
-                        "{}[{}] {}",
-                        awaitee.offset, awaitee.size, awaitee.type_name
-                    )?;
-                }
-                None => {
-                    writeln!(f, "")?;
-                }
-            }
-        }
-        writeln!(f, "")?;
-
-        for member in &self.members {
-            writeln!(
-                f,
-                "{}[{}] {:<15}: {}",
-                member.offset, member.size, member.name, member.type_name
-            )?;
-        }
-
-        Ok(())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct AsyncFnType {
     pub(crate) path: String,
@@ -393,13 +303,6 @@ impl AsyncFnType {
         layout.sort_members_by_offset();
 
         Ok(Some(Self { path, layout }))
-    }
-}
-
-impl std::fmt::Display for AsyncFnType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.path)?;
-        writeln!(f, "{}", self.layout)
     }
 }
 
