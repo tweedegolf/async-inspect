@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::Write};
+use std::collections::HashMap;
 
 use ddbug_parser::{FileHash, Result, StructType, TypeKind};
 
-use super::{namespace_to_path, ty::Type};
+use super::{from_namespace_and_name, ty::Type};
 
 // Defined here: https://github.com/rust-lang/rust/blob/a9fb6103b05c6ad6eee6bed4c0bb5a2e8e1024c6/compiler/rustc_codegen_ssa/src/debuginfo/type_names.rs#L566
 const FUTURE_TYPE_NAMES: &[&str] = &[
@@ -213,12 +213,7 @@ impl AsyncFnType {
             return Ok(None);
         }
 
-        let namespace = struct_type
-            .namespace()
-            .ok_or("future types should always be part of a namespace")?;
-        let mut path = namespace_to_path(namespace);
-        path.push_str("::");
-        path.push_str(struct_name);
+        let path = from_namespace_and_name(struct_type.namespace(), Some(struct_name));
 
         let mut layout = Layout::from_ddbug_type(struct_type, file_hash)?;
         layout.sort_members_by_offset();
