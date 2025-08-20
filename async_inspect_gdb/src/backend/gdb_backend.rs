@@ -9,7 +9,7 @@ use pyo3::{
 
 use crate::{
     backend::gdb_backend::gdb_ratatui_backend::GdbRatatuiBackend,
-    embassy_inspector::{Click, EmbassyInspector, Event},
+    embassy_inspector::{Click, EmbassyInspector, Event, Type},
 };
 
 pub mod gdb_ratatui_backend;
@@ -41,6 +41,38 @@ impl<'a, 'py> GdbBackend<'a, 'py> {
 
             breakpoint_reg,
         })
+    }
+
+    fn gdb_gdb_type(&self, ty: &Type) -> Option<Bound<'py, PyAny>> {
+        let py = self.gdb.py();
+
+        match ty {
+            Type::Unknown => return None,
+            Type::Void => self
+                .gdb
+                .call_method0(intern!(py, "selected_inferior"))
+                .ok()?
+                .call_method0(intern!(py, "architecture"))
+                .ok()?
+                .call_method0(intern!(py, "void_type"))
+                .ok(),
+            Type::Array { inner, count } => self
+                .gdb_gdb_type(&inner)?
+                .call_method1(intern!(py, "vector"), (0, *count - 1))
+                .ok(),
+            Type::Pointer(inner) => self
+                .gdb_gdb_type(&inner)?
+                .call_method0(intern!(py, "pointer"))
+                .ok(),
+            Type::Refrence(inner) => self
+                .gdb_gdb_type(&inner)?
+                .call_method0(intern!(py, "reference"))
+                .ok(),
+            Type::Base(name) => self
+                .gdb
+                .call_method1(intern!(py, "lookup_type"), (name,))
+                .ok(),
+        }
     }
 }
 
@@ -115,13 +147,10 @@ impl<'a, 'py> super::Backend for GdbBackend<'a, 'py> {
         Ok(bytes)
     }
 
-    fn try_format_value(&mut self, bytes: &[u8], type_name: &str) -> Option<String> {
+    fn try_format_value(&mut self, bytes: &[u8], ty: &Type) -> Option<String> {
         let py = self.py;
 
-        let gdb_type = self
-            .gdb
-            .call_method1(intern!(py, "lookup_type"), (type_name,))
-            .ok()?;
+        let gdb_type = self.gdb_gdb_type(ty)?;
 
         let value = self.gdb.getattr(intern!(py, "Value")).ok()?;
         let value = value.call1((bytes, gdb_type)).ok()?;

@@ -49,7 +49,7 @@ async fn game(
     mut rng: rng::Rng<'static, peripherals::RNG, embassy_nrf::mode::Async>,
     mut leds: [Output<'static>; 4],
     mut buttons: [Input<'static>; 4],
-    sequence: &'static mut [u8; 1024],
+    sequence: &'static mut [u8],
 ) -> ! {
     let mut len;
 

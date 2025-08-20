@@ -1,15 +1,17 @@
 mod dwarf_parser;
 mod ui;
 
+use std::collections::HashMap;
+
 use anyhow::{Result, anyhow};
 use ratatui::{Terminal, layout::Position};
 
 use crate::backend::Backend;
 use dwarf_parser::{DebugData, task_pool::TaskPoolValue};
 
-use ui::UiState;
+use ui::{UiDrawCtx, UiState};
 
-use self::ui::UiDrawCtx;
+pub use dwarf_parser::ty::Type;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ClickButton {
@@ -44,6 +46,10 @@ pub struct EmbassyInspector<RB: ratatui::backend::Backend> {
 
     debug_data: DebugData,
     last_values: Vec<TaskPoolValue>,
+    // Gdb can only format values containing pointers when the target is stopt, so we cache formated
+    // values here to use if the screen needs to be refreshed for for example scrolling while the
+    // target is running.
+    formating_cache: HashMap<(Vec<u8>, Type), Option<String>>,
 }
 
 impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
@@ -71,6 +77,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
 
             debug_data,
             last_values: Vec::new(),
+            formating_cache: HashMap::new(),
         };
         s.update_values(backend);
         Ok(s)
@@ -78,6 +85,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
 
     fn update_values<B: Backend>(&mut self, backend: &mut B) {
         self.last_values.clear();
+        self.formating_cache.clear();
 
         for task_pool in &self.debug_data.task_pools {
             let bytes = match backend.read_memory(task_pool.address, task_pool.size) {
@@ -121,7 +129,12 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 frame,
                 click,
                 values: &self.last_values,
-                try_format_value: &mut |b, ty| backend.try_format_value(b, ty),
+                try_format_value: &mut |b, ty| {
+                    self.formating_cache
+                        .entry((b.to_vec(), ty.clone()))
+                        .or_insert_with_key(|(b, t)| backend.try_format_value(b, t))
+                        .clone()
+                },
             };
 
             while let Err(event) = self.ui_state.draw(&mut ctx) {

@@ -11,7 +11,7 @@ use ratatui::{
 use crate::{embassy_inspector::dwarf_parser::async_fn::Member, scroll_view::ScrollView};
 
 use super::{
-    Click, ClickButton,
+    Click, ClickButton, Type,
     dwarf_parser::{
         async_fn::{AsyncFnType, AsyncFnValue},
         task_pool::TaskPoolValue,
@@ -29,7 +29,7 @@ pub struct UiDrawCtx<'a, 'b> {
     pub(crate) frame: &'a mut Frame<'b>,
     pub(crate) click: Option<Click>,
     pub(crate) values: &'a [TaskPoolValue],
-    pub(crate) try_format_value: &'a mut dyn FnMut(&[u8], &str) -> Option<String>,
+    pub(crate) try_format_value: &'a mut dyn FnMut(&[u8], &Type) -> Option<String>,
 }
 
 #[derive(Debug)]
@@ -269,7 +269,7 @@ fn async_fn_to_text<'a, F>(
     try_format_value: &mut F,
 ) -> Text<'a>
 where
-    F: FnMut(&[u8], &str) -> Option<String>,
+    F: FnMut(&[u8], &Type) -> Option<String>,
 {
     let seperator: Span<'static> = Span::raw(" | ");
 
@@ -340,7 +340,7 @@ where
             line.push_span(Span::from(" ".repeat(awaitee_pos.0 - current_col)));
             line.push_span(Span::from(format!(
                 "{}[{}] {}",
-                awaitee.offset, awaitee.size, awaitee.type_name
+                awaitee.offset, awaitee.size, awaitee.ty
             )));
         }
 
@@ -354,21 +354,22 @@ where
 
     for member in &ty.layout.members {
         let mut line = Line::raw(format!(
-            "{:>2}[{}] {:<15}: ",
-            member.offset, member.size, member.name
+            "{:>2}[{}] {:<15}: {}",
+            member.offset, member.size, member.name, member.ty
         ));
 
         if let Some(value) = value
             && let Ok(state) = &value.state_value
             && let Some(member_value) = state.members.iter().find(|m| &m.member == member)
         {
-            match try_format_value(&member_value.bytes, &member.type_name)
+            line.push_span(" = ");
+            match try_format_value(&member_value.bytes, &member.ty)
                 .and_then(|formatted| ansi_to_tui::IntoText::into_text(&formatted).ok())
                 .map(|text| text.into_iter().flatten())
             {
                 Some(spans) => line.extend(spans),
                 None => line.extend([
-                    Span::raw(format!("{} = bytes [", member.type_name)),
+                    Span::raw("bytes ["),
                     Span::raw(
                         member_value
                             .bytes
@@ -380,6 +381,8 @@ where
                     Span::raw(" ]"),
                 ]),
             }
+        } else {
+            line = line.gray();
         }
 
         text.push_line(line);

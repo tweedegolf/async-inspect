@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Write};
 
 use ddbug_parser::{FileHash, Result, StructType, TypeKind};
 
-use super::{from_namespace_and_name, namespace_to_path};
+use super::{namespace_to_path, ty::Type};
 
 // Defined here: https://github.com/rust-lang/rust/blob/a9fb6103b05c6ad6eee6bed4c0bb5a2e8e1024c6/compiler/rustc_codegen_ssa/src/debuginfo/type_names.rs#L566
 const FUTURE_TYPE_NAMES: &[&str] = &[
@@ -17,86 +17,10 @@ const FUTURE_TYPE_NAMES: &[&str] = &[
     "async_gen_fn",
 ];
 
-fn type_to_string(ty: &ddbug_parser::Type, file_hash: &FileHash) -> String {
-    match ty.kind() {
-        TypeKind::Void => String::from("void"),
-        TypeKind::Base(base_type) => base_type.name().unwrap_or("<unknown>").to_string(),
-        TypeKind::Def(type_def) => from_namespace_and_name(type_def.namespace(), type_def.name()),
-        TypeKind::Struct(struct_type) => {
-            from_namespace_and_name(struct_type.namespace(), struct_type.name())
-        }
-        TypeKind::Union(union_type) => {
-            from_namespace_and_name(union_type.namespace(), union_type.name())
-        }
-        TypeKind::Enumeration(enumeration_type) => {
-            from_namespace_and_name(enumeration_type.namespace(), enumeration_type.name())
-        }
-        TypeKind::Array(array_type) => {
-            let inner = array_type
-                .element_type(file_hash)
-                .map(|inner| type_to_string(&inner, file_hash))
-                .unwrap_or_else(|| String::from("<unknown>"));
-
-            let counts = match array_type.counts().collect::<Vec<_>>().as_slice() {
-                [] => String::new(),
-                [None] => String::new(),
-                other => {
-                    let mut result = String::new();
-                    for c in other {
-                        result.push_str("; ");
-                        match c {
-                            Some(c) => {
-                                result.push_str(&c.to_string());
-                            }
-                            None => result.push_str("; ?"),
-                        }
-                    }
-                    result
-                }
-            };
-            format!("[{inner}{counts}]")
-        }
-        TypeKind::Function(function_type) => {
-            todo!()
-        }
-        TypeKind::Unspecified(unspecified_type) => {
-            from_namespace_and_name(unspecified_type.namespace(), unspecified_type.name())
-        }
-        TypeKind::PointerToMember(pointer_to_member_type) => {
-            let inner = pointer_to_member_type
-                .member_type(file_hash)
-                .map(|inner| type_to_string(&inner, file_hash))
-                .unwrap_or_else(|| String::from("<unknown>"));
-            format!("*{inner}")
-        }
-        TypeKind::Modifier(type_modifier) => {
-            let inner = type_modifier
-                .ty(file_hash)
-                .map(|inner| type_to_string(&inner, file_hash))
-                .unwrap_or_else(|| String::from("<unknown>"));
-
-            let modifier = match type_modifier.kind() {
-                ddbug_parser::TypeModifierKind::Pointer => "* ",
-                ddbug_parser::TypeModifierKind::Reference => "& ",
-                ddbug_parser::TypeModifierKind::Const => "const ",
-                ddbug_parser::TypeModifierKind::Packed => "packed ",
-                ddbug_parser::TypeModifierKind::Volatile => "volatile ",
-                ddbug_parser::TypeModifierKind::Restrict => "",
-                ddbug_parser::TypeModifierKind::Shared => "",
-                ddbug_parser::TypeModifierKind::RvalueReference => "",
-                ddbug_parser::TypeModifierKind::Atomic => "",
-                ddbug_parser::TypeModifierKind::Other => "",
-            };
-            format!("{modifier}{inner}")
-        }
-        TypeKind::Subrange(subrange_type) => todo!(),
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Member {
     pub(crate) name: String,
-    pub(crate) type_name: String,
+    pub(crate) ty: Type,
     /// Offset from the start of the future struct
     pub(crate) offset: u64,
     pub(crate) size: u64,
@@ -106,10 +30,7 @@ impl Member {
     fn from_ddbug_member(member: &ddbug_parser::Member<'_>, file_hash: &FileHash) -> Result<Self> {
         let name = member.name().ok_or("members should have names")?.to_owned();
 
-        let type_name = match member.ty(file_hash) {
-            Some(ty) => type_to_string(&ty, file_hash),
-            None => "<unknown>".to_owned(),
-        };
+        let ty = Type::from_maybe_ddbug_type(member.ty(file_hash), file_hash);
 
         let offset = member.bit_offset() / 8;
         let size = member
@@ -119,7 +40,7 @@ impl Member {
 
         Ok(Self {
             name,
-            type_name,
+            ty,
             offset,
             size,
         })
@@ -309,7 +230,7 @@ impl AsyncFnType {
 #[derive(Debug)]
 pub(crate) enum FutureValue {
     AsyncFn(AsyncFnValue),
-    Unknown { name: String, bytes: Vec<u8> },
+    Unknown { ty: Type, bytes: Vec<u8> },
 }
 
 #[derive(Debug)]
@@ -342,9 +263,10 @@ impl StateValue {
         }
 
         let awaitee = state.awaitee.as_ref().map(|awaitee| {
+            let awaitte_name = awaitee.ty.to_string();
             let future_type = async_fns
                 .iter()
-                .find(|async_fn| async_fn.path == awaitee.type_name);
+                .find(|async_fn| async_fn.path == awaitte_name);
 
             let bytes = &bytes[awaitee.offset as usize..][..awaitee.size as usize];
 
@@ -353,7 +275,7 @@ impl StateValue {
                     FutureValue::AsyncFn(AsyncFnValue::new(async_fn_type, bytes, async_fns))
                 }
                 None => FutureValue::Unknown {
-                    name: awaitee.type_name.clone(),
+                    ty: awaitee.ty.clone(),
                     bytes: bytes.to_vec(),
                 },
             };

@@ -9,7 +9,7 @@ use embassy_nrf::{
 };
 use {defmt_rtt as _, panic_probe as _};
 
-#[embassy_executor::task(pool_size = 4)]
+#[embassy_executor::task(pool_size = 5)]
 async fn on_button(led: Peri<'static, AnyPin>, button: Peri<'static, AnyPin>) {
     let mut led = Output::new(led, Level::Low, OutputDrive::Standard);
     let mut button = Input::new(button, Pull::Up);

@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::Result;
 
 use ddbug_parser::FileHash;
 
 use async_fn::AsyncFnType;
 use task_pool::{TaskPool, TaskPoolValue};
 
-pub mod async_fn;
-pub mod task_pool;
+pub(crate) mod async_fn;
+pub(crate) mod task_pool;
+pub(crate) mod ty;
 
 fn namespace_to_path(namespace: &ddbug_parser::Namespace<'_>) -> String {
     let name = namespace.name().unwrap_or("<unknown>");

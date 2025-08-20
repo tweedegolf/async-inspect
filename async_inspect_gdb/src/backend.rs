@@ -1,5 +1,7 @@
 use anyhow::Result;
 
+use crate::embassy_inspector::Type;
+
 pub mod gdb_backend;
 
 pub trait Backend {
@@ -19,5 +21,5 @@ pub trait Backend {
     /// `None` if the bytes are invalid or if this backend does not support formatting values.
     ///
     /// The returned string is allowed to contain ansi escape codes for coloring.
-    fn try_format_value(&mut self, bytes: &[u8], type_name: &str) -> Option<String>;
+    fn try_format_value(&mut self, bytes: &[u8], ty: &Type) -> Option<String>;
 }
