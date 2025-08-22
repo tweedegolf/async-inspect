@@ -66,7 +66,7 @@ impl State {
         let Some(discriminant_value) = variant.discriminant_value() else {
             return Err("future type varaints should always have discriminant values".into());
         };
-
+        
         Ok(State {
             name: state_name,
             discriminant_value,

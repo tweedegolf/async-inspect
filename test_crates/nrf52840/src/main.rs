@@ -14,6 +14,17 @@ async fn on_button(led: Peri<'static, AnyPin>, button: Peri<'static, AnyPin>) {
     let mut led = Output::new(led, Level::Low, OutputDrive::Standard);
     let mut button = Input::new(button, Pull::Up);
 
+    for _ in 0..10 {
+        button.wait_for_high().await;
+        led.set_high();
+
+        button.wait_for_low().await;
+        led.set_low();
+    }
+    inner(led, button).await;
+}
+
+async fn inner(mut led: Output<'_>, mut button: Input<'_>) -> ! {
     loop {
         button.wait_for_high().await;
         led.set_high();

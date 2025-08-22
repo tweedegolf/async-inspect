@@ -1,4 +1,7 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+};
 
 use ratatui::{
     Frame,
@@ -8,13 +11,16 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::{embassy_inspector::dwarf_parser::async_fn::Member, scroll_view::ScrollView};
+use crate::{
+    embassy_inspector::dwarf_parser::async_fn::{FutureValue, Member},
+    scroll_view::ScrollView,
+};
 
 use super::{
     Click, ClickButton, Type,
     dwarf_parser::{
         async_fn::{AsyncFnType, AsyncFnValue},
-        task_pool::TaskPoolValue,
+        task_pool::{TaskPoolValue, TaskValue},
     },
 };
 
@@ -29,7 +35,7 @@ pub struct UiDrawCtx<'a, 'b> {
     pub(crate) frame: &'a mut Frame<'b>,
     pub(crate) click: Option<Click>,
     pub(crate) values: &'a [TaskPoolValue],
-    pub(crate) try_format_value: &'a mut dyn FnMut(&[u8], &Type) -> Option<String>,
+    pub(crate) try_format_value: &'a mut dyn FnMut(&[u8], &Type) -> Line<'static>,
 }
 
 #[derive(Debug)]
@@ -37,6 +43,7 @@ pub enum UiEvent {
     Back,
     AddPage(Box<dyn UiPage + Sync + Send>),
     SetScroll(i32),
+    ToggleClosed(Vec<u64>),
 }
 
 pub trait UiPage: std::fmt::Debug {
@@ -78,47 +85,36 @@ impl UiPage for MainMenu {
         ctx.frame
             .render_widget(Text::from("Found task pools:"), header);
 
-        let mut scroll_view = ScrollView::new(rest.as_size(), self.scroll);
-        for (i, pool) in ctx.values.iter().enumerate() {
-            let mut text = Text::from(Line::from_iter([
-                Span::from("Pool size: "),
-                pool.task_pool.number_of_tasks.to_string().blue(),
-            ]));
+        let mut scroll_view = ScrollView::new(rest, self.scroll);
 
-            if let [value] = pool.async_fn_values.as_slice() {
-                text.push_line(Line::from("Future value:"));
-                text.extend(async_fn_to_text(
-                    &pool.task_pool.async_fn_type,
-                    Some(value),
-                    &mut ctx.try_format_value,
-                ));
-            } else {
-                text.push_line(Line::from("Future state machine alyout:"));
-                text.extend(
-                    async_fn_to_text(
-                        &pool.task_pool.async_fn_type,
-                        None,
-                        &mut ctx.try_format_value,
-                    )
-                    .into_iter()
-                    .map(|l| l.gray()),
+        for (pool_idx, pool) in ctx.values.iter().enumerate() {
+            let area = scroll_view.next_area(3 + pool.task_pool.number_of_tasks as u16);
+
+            let block = Block::bordered().title(pool.task_pool.path.clone().blue());
+            scroll_view.render_widget(&block, area);
+
+            let mut area = block.inner(area);
+            area.height = 1;
+
+            scroll_view.render_widget(Line::raw("Tasks in pool:"), area);
+            area.y += 1;
+            for (task_idx, task) in pool.task_values.iter().enumerate() {
+                let init = match task {
+                    TaskValue::Uninit => Span::raw("uninitialized").gray(),
+                    TaskValue::Init(_) => Span::raw("spawned").blue(),
+                };
+                let vis_area = scroll_view.render_widget(
+                    Line::from_iter([Span::raw(format!("- {task_idx}: ")), init]),
+                    area,
                 );
-                text.push_line(Line::from("Click to see individual tasks"));
-            }
-
-            let height = text.height() + 2;
-
-            let text = Paragraph::new(text)
-                .block(Block::bordered().title(pool.task_pool.path.clone().blue()));
-
-            let area = scroll_view.render_next_widget(&text, height as u16);
-            if is_clicked_left(&area, ctx.click) {
-                return Err(UiEvent::AddPage(Box::new(TaskPool {
-                    pool_idx: i,
-                    scroll: 0,
-                })));
+                if is_clicked_left(&vis_area, ctx.click) {
+                    return Err(UiEvent::AddPage(Box::new(Task::new(pool_idx, task_idx))));
+                }
+                area.y += 1;
             }
         }
+
+        scroll_view.render_next_widget(Line::raw("Click on a task for details"), 1);
 
         if scroll_view.max_scroll() < self.scroll {
             return Err(UiEvent::SetScroll(scroll_view.max_scroll()));
@@ -130,13 +126,207 @@ impl UiPage for MainMenu {
     }
 }
 
+// #[derive(Debug, Clone)]
+// struct TaskPool {
+//     pool_idx: usize,
+//     scroll: i32,
+// }
+
+// impl UiPage for TaskPool {
+//     fn apply_scroll(&mut self, scroll: i32) {
+//         self.scroll += scroll;
+//         self.scroll = self.scroll.max(0);
+//     }
+
+//     fn apply_event(&mut self, event: UiEvent) {
+//         match event {
+//             UiEvent::SetScroll(scroll) => self.scroll = scroll,
+//             _ => {}
+//         }
+//     }
+
+//     fn title(&self, values: &[TaskPoolValue]) -> String {
+//         format!("Task pool: {}", values[self.pool_idx].task_pool.path)
+//     }
+
+//     fn draw(&self, ctx: &mut UiDrawCtx, area: Rect) -> Result<(), UiEvent> {
+//         let pool = &ctx.values[self.pool_idx];
+
+//         let mut scroll_view = ScrollView::new(area.as_size(), self.scroll);
+//         for (i, value) in pool.task_values.iter().enumerate() {
+//             let (text, title_color) = match value {
+//                 TaskValue::Uninit => {
+//                     let text = Text::raw("Task is uninitialized");
+//                     (text, Color::Gray)
+//                 }
+//                 TaskValue::Init(FutureValue::AsyncFn(value)) => {
+//                     let text = async_fn_to_text(&value.ty, Some(value), &mut ctx.try_format_value);
+//                     (text, Color::Blue)
+//                 }
+//                 TaskValue::Init(_) => unreachable!(),
+//             };
+
+//             let height = text.height() + 2;
+//             let text = Paragraph::new(text)
+//                 .block(Block::bordered().title(format!("Task {i}").fg(title_color)));
+
+//             let area = scroll_view.render_next_widget(&text, height as u16);
+//             if is_clicked_left(&area, ctx.click) {
+//                 return Err(UiEvent::AddPage(Box::new(Task {
+//                     pool_idx: self.pool_idx,
+//                     task_idx: i,
+
+//                     scroll: 0,
+//                 })));
+//             }
+//         }
+
+//         if scroll_view.max_scroll() < self.scroll {
+//             return Err(UiEvent::SetScroll(scroll_view.max_scroll()));
+//         }
+
+//         ctx.frame.render_widget(scroll_view, area);
+
+//         Ok(())
+//     }
+// }
+
 #[derive(Debug, Clone)]
-struct TaskPool {
+struct ItemState {
+    closed: bool,
+    children: HashMap<u64, ItemState>,
+}
+
+impl Default for ItemState {
+    fn default() -> Self {
+        Self {
+            closed: false,
+            children: HashMap::new(),
+        }
+    }
+}
+
+impl ItemState {
+    fn toggle_closed(&mut self, path: &[u64]) {
+        match path {
+            [head, rest @ ..] => {
+                self.children.entry(*head).or_default().toggle_closed(rest);
+            }
+            [] => {
+                self.closed = !self.closed;
+            }
+        }
+    }
+}
+
+struct TreeData<'a> {
+    value: &'a FutureValue,
+    path: Vec<u64>,
+    item_state: &'a ItemState,
+}
+
+#[derive(Debug, Clone)]
+struct Task {
     pool_idx: usize,
+    task_idx: usize,
+
+    item_state: ItemState,
     scroll: i32,
 }
 
-impl UiPage for TaskPool {
+impl Task {
+    fn new(pool_idx: usize, task_idx: usize) -> Self {
+        Self {
+            pool_idx,
+            task_idx,
+            item_state: ItemState::default(),
+            scroll: 0,
+        }
+    }
+
+    fn add_future(
+        tree_data: &TreeData,
+        scroll_view: &mut ScrollView,
+        ctx: &mut UiDrawCtx,
+    ) -> Result<(), UiEvent> {
+        let mut children = Vec::<(&FutureValue, u64)>::new();
+
+        let line = match tree_data.value {
+            FutureValue::AsyncFn(value) => {
+                let mut line = Line::from_iter([
+                    Span::raw("Function "),
+                    Span::raw(&value.ty.path).blue(),
+                    Span::raw(" is waiting at "),
+                ]);
+                match &value.state_value {
+                    Ok(state) => {
+                        line.push_span(Span::raw(&state.state.name).blue());
+                        if let Some(awaitee) = &state.awaitee {
+                            line.push_span(Span::raw(" on:"));
+
+                            children.push((awaitee, state.state.discriminant_value));
+                        }
+                    }
+                    Err(err_discr) => {
+                        line.push_span(format!("<invalid discriminant {err_discr}>").blue());
+                    }
+                }
+                line
+            }
+            FutureValue::Unknown { ty, bytes } => (ctx.try_format_value)(bytes, ty),
+        };
+
+        let text = Paragraph::new(line).wrap(Default::default());
+
+        let indent = tree_data.path.len() as u16 * 2;
+
+        let height = text.line_count(scroll_view.frame_size().width - indent - 2);
+        let mut area = scroll_view.next_area(height as u16);
+        let mut button_area = area;
+        button_area.x += indent;
+        button_area.width = 2;
+        let button_area = scroll_view.render_widget(
+            Span::raw(match tree_data.item_state.closed {
+                true => "-",
+                false => "+",
+            }),
+            button_area,
+        );
+        if is_clicked_left(&button_area, ctx.click) {
+            return Err(UiEvent::ToggleClosed(tree_data.path.clone()));
+        }
+
+        area.x += indent + 2;
+        area.width -= indent + 2;
+        scroll_view.render_widget(text, area);
+
+        if tree_data.item_state.closed {
+            return Ok(());
+        }
+
+        for (child_value, path_id) in children {
+            let mut child_path = tree_data.path.clone();
+            child_path.push(path_id);
+
+            let item_state = match tree_data.item_state.children.get(&path_id) {
+                Some(item_state) => item_state,
+                None => &ItemState::default(),
+            };
+
+            let child_tree_data = TreeData {
+                value: child_value,
+                path: child_path,
+                item_state,
+            };
+
+            Self::add_future(&child_tree_data, scroll_view, ctx)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl UiPage for Task {
     fn apply_scroll(&mut self, scroll: i32) {
         self.scroll += scroll;
         self.scroll = self.scroll.max(0);
@@ -145,26 +335,45 @@ impl UiPage for TaskPool {
     fn apply_event(&mut self, event: UiEvent) {
         match event {
             UiEvent::SetScroll(scroll) => self.scroll = scroll,
+            UiEvent::ToggleClosed(path) => {
+                self.item_state.toggle_closed(&path);
+            }
             _ => {}
         }
     }
 
     fn title(&self, values: &[TaskPoolValue]) -> String {
-        format!("Task pool: {}", values[self.pool_idx].task_pool.path)
+        format!(
+            "Task: {}[{}]",
+            values[self.pool_idx].task_pool.path, self.task_idx
+        )
     }
 
     fn draw(&self, ctx: &mut UiDrawCtx, area: Rect) -> Result<(), UiEvent> {
-        let pool = &ctx.values[self.pool_idx];
+        let Some(pool) = ctx.values.get(self.pool_idx) else {
+            return Err(UiEvent::Back);
+        };
+        let Some(task) = pool.task_values.get(self.task_idx) else {
+            return Err(UiEvent::Back);
+        };
 
-        let mut scroll_view = ScrollView::new(area.as_size(), self.scroll);
-        for (i, value) in pool.async_fn_values.iter().enumerate() {
-            let text = async_fn_to_text(&value.ty, Some(value), &mut ctx.try_format_value);
+        let mut scroll_view = ScrollView::new(area, self.scroll);
 
-            let height = text.height() + 2;
-            let text =
-                Paragraph::new(text).block(Block::bordered().title(format!("Task {i}").blue()));
+        match task {
+            TaskValue::Uninit => {
+                scroll_view.render_next_widget(Line::raw("Task is uninitialized"), 1);
+            }
+            TaskValue::Init(value) => {
+                scroll_view.render_next_widget(Line::raw("Await point backtrace:"), 1);
 
-            let _area = scroll_view.render_next_widget(&text, height as u16);
+                let tree_data = TreeData {
+                    value,
+                    path: Vec::new(),
+                    item_state: &self.item_state,
+                };
+
+                Self::add_future(&tree_data, &mut scroll_view, ctx)?;
+            }
         }
 
         if scroll_view.max_scroll() < self.scroll {
@@ -269,7 +478,7 @@ fn async_fn_to_text<'a, F>(
     try_format_value: &mut F,
 ) -> Text<'a>
 where
-    F: FnMut(&[u8], &Type) -> Option<String>,
+    F: FnMut(&[u8], &Type) -> Line<'static>,
 {
     let seperator: Span<'static> = Span::raw(" | ");
 
@@ -363,24 +572,7 @@ where
             && let Some(member_value) = state.members.iter().find(|m| &m.member == member)
         {
             line.push_span(" = ");
-            match try_format_value(&member_value.bytes, &member.ty)
-                .and_then(|formatted| ansi_to_tui::IntoText::into_text(&formatted).ok())
-                .map(|text| text.into_iter().flatten())
-            {
-                Some(spans) => line.extend(spans),
-                None => line.extend([
-                    Span::raw("bytes ["),
-                    Span::raw(
-                        member_value
-                            .bytes
-                            .iter()
-                            .map(|b| format!(" {b:0>2x}"))
-                            .collect::<String>(),
-                    )
-                    .blue(),
-                    Span::raw(" ]"),
-                ]),
-            }
+            line.extend(try_format_value(&member_value.bytes, &member.ty));
         } else {
             line = line.gray();
         }

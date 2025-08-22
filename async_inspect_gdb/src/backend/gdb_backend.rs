@@ -233,16 +233,17 @@ impl GdbTui {
     fn stop_event(&mut self, event: PyObject, py: Python) -> PyResult<()> {
         let mut events = Vec::new();
 
-        {
-            if let Ok(breakpoints) = event.getattr(py, intern!(py, "breakpoints")) {
-                for breakpoint in breakpoints.bind(py).try_iter()?.flatten() {
-                    for (id, reg_breakpoint) in &self.breakpoint_reg {
-                        if breakpoint.eq(&reg_breakpoint.bind(py))? {
-                            events.push(Event::Breakpoint(*id));
-                        }
+        if let Ok(breakpoints) = event.getattr(py, intern!(py, "breakpoints")) {
+            for breakpoint in breakpoints.bind(py).try_iter()?.flatten() {
+                for (id, reg_breakpoint) in &self.breakpoint_reg {
+                    if breakpoint.eq(&reg_breakpoint.bind(py))? {
+                        events.push(Event::Breakpoint(*id));
                     }
                 }
             }
+        }
+        if events.is_empty() {
+            events.push(Event::Stoped);
         }
 
         for event in events {

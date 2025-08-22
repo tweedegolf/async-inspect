@@ -3,13 +3,17 @@
 
 use ratatui::{
     buffer::Buffer,
-    layout::{Rect, Size},
+    layout::{Offset, Rect, Size},
     widgets::Widget,
 };
 
 pub struct ScrollView {
     buf: Buffer,
     scroll: i32,
+
+    /// Offset of the scrollview into the main buffer, used to calculate the correct rect to return
+    /// for the draw functions.
+    offset: Offset,
 
     next_y: u16,
 }
@@ -19,7 +23,7 @@ impl ScrollView {
     ///
     /// A positive scroll meas the content will be moved up, a negative scroll will move the content
     /// down.
-    pub fn new(frame: Size, scroll: i32) -> Self {
+    pub fn new(frame: Rect, scroll: i32) -> Self {
         let area = Rect {
             x: 0,
             y: 0,
@@ -29,8 +33,19 @@ impl ScrollView {
         Self {
             buf: Buffer::empty(area),
             scroll,
+
+            offset: Offset {
+                x: frame.x as i32,
+                y: frame.y as i32,
+            },
+
             next_y: 0,
         }
+    }
+
+    /// The size that this [`ScrollView`] excpects to be drawn in.
+    pub fn frame_size(&self) -> Size {
+        self.buf.area.as_size()
     }
 
     /// Render a widget into the scroll buffer
@@ -41,7 +56,8 @@ impl ScrollView {
     ///
     /// The returned rect will contain the area that will be visible on the main buffer. A rect of
     /// size zero will be returned if the widget is full off screen (the rect location is then
-    /// unspecified).
+    /// unspecified). This will only be correct if the [`ScrollView`] is actualy rendered at the
+    /// area given in `new`.
     ///
     ///
     /// This should not be confused with the `render` method, which renders the visible area of the
@@ -74,7 +90,7 @@ impl ScrollView {
                 height: area.height,
             };
             widget.render(area, &mut self.buf);
-            return area;
+            return area.offset(self.offset);
         }
 
         let mut virtual_buff = Buffer::empty(Rect {
@@ -107,7 +123,18 @@ impl ScrollView {
                 );
         }
 
-        return overlap;
+        return overlap.offset(self.offset);
+    }
+
+    /// Gives the rect that is directly underneath the lowest draw widget with the givven height.
+    /// Spanning the full width of the `ScrollView`.
+    pub fn next_area(&mut self, height: u16) -> Rect {
+        Rect {
+            x: 0,
+            y: self.next_y,
+            width: self.buf.area.width,
+            height,
+        }
     }
 
     /// Like [`Self::render_widget`] but automaticly places this widget directly underneath the
@@ -170,7 +197,7 @@ mod test {
     fn only_full_widgets() {
         let mut main_buf = Buffer::empty(Rect::new(0, 0, 6, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), 0);
+        let mut scroll_view = ScrollView::new(main_buf.area, 0);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(main_buf.area, &mut main_buf);
@@ -193,7 +220,7 @@ mod test {
     fn widget_split() {
         let mut main_buf = Buffer::empty(Rect::new(0, 0, 6, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), 1);
+        let mut scroll_view = ScrollView::new(main_buf.area, 1);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(main_buf.area, &mut main_buf);
@@ -216,7 +243,7 @@ mod test {
     fn negative_scroll() {
         let mut main_buf = Buffer::empty(Rect::new(0, 0, 6, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), -1);
+        let mut scroll_view = ScrollView::new(main_buf.area, -1);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(main_buf.area, &mut main_buf);
@@ -239,7 +266,7 @@ mod test {
     fn x_cutoff() {
         let mut main_buf = Buffer::empty(Rect::new(0, 0, 2, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), 0);
+        let mut scroll_view = ScrollView::new(main_buf.area, 0);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(main_buf.area, &mut main_buf);
@@ -262,7 +289,7 @@ mod test {
     fn offset_scroll_view_render() {
         let mut main_buf = Buffer::empty(Rect::new(0, 0, 6, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), 1);
+        let mut scroll_view = ScrollView::new(main_buf.area, 1);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(Rect::new(2, 2, 3, 3), &mut main_buf);
@@ -285,7 +312,7 @@ mod test {
     fn main_buffer_offset() {
         let mut main_buf = Buffer::empty(Rect::new(2, 2, 6, 6));
 
-        let mut scroll_view = ScrollView::new(main_buf.area.as_size(), 1);
+        let mut scroll_view = ScrollView::new(main_buf.area, 1);
         draw_to_scroll_view(&mut scroll_view);
 
         scroll_view.render(main_buf.area, &mut main_buf);

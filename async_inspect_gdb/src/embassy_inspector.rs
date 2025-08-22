@@ -4,7 +4,12 @@ mod ui;
 use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
-use ratatui::{Terminal, layout::Position};
+use ratatui::{
+    Terminal,
+    layout::Position,
+    style::Stylize,
+    text::{Line, Span},
+};
 
 use crate::backend::Backend;
 use dwarf_parser::{DebugData, task_pool::TaskPoolValue};
@@ -30,11 +35,13 @@ pub struct Click {
 pub enum Event {
     /// Window was resized of made invalid for a diffrent reason and needs te be redrawn.
     Redraw,
+    Click(Click),
+    Scroll(i32),
 
     /// The breakpoint with the given id was hit.
     Breakpoint(u64),
-    Click(Click),
-    Scroll(i32),
+    /// The target was stopped for any reason except a breakpoint.
+    Stoped,
 }
 
 #[derive(Debug)]
@@ -49,7 +56,7 @@ pub struct EmbassyInspector<RB: ratatui::backend::Backend> {
     // Gdb can only format values containing pointers when the target is stopt, so we cache formated
     // values here to use if the screen needs to be refreshed for for example scrolling while the
     // target is running.
-    formating_cache: HashMap<(Vec<u8>, Type), Option<String>>,
+    formating_cache: HashMap<(Vec<u8>, Type), Line<'static>>,
 }
 
 impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
@@ -108,6 +115,11 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 // we redraw afther every event.
                 None
             }
+            Event::Click(click) => Some(click),
+            Event::Scroll(s) => {
+                self.ui_state.apply_scroll(s);
+                None
+            }
             Event::Breakpoint(i) => {
                 self.update_values(backend);
 
@@ -117,9 +129,8 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 }
                 None
             }
-            Event::Click(click) => Some(click),
-            Event::Scroll(s) => {
-                self.ui_state.apply_scroll(s);
+            Event::Stoped => {
+                self.update_values(backend);
                 None
             }
         };
@@ -132,7 +143,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 try_format_value: &mut |b, ty| {
                     self.formating_cache
                         .entry((b.to_vec(), ty.clone()))
-                        .or_insert_with_key(|(b, t)| backend.try_format_value(b, t))
+                        .or_insert_with_key(|(b, t)| format_value(b, t, backend))
                         .clone()
                 },
             };
@@ -147,5 +158,26 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
         })?;
 
         Ok(())
+    }
+}
+
+fn format_value<B: Backend>(bytes: &[u8], ty: &Type, backend: &mut B) -> Line<'static> {
+    match backend
+        .try_format_value(&bytes, &ty)
+        .and_then(|formatted| ansi_to_tui::IntoText::into_text(&formatted).ok())
+        .map(|text| text.into_iter().flatten())
+    {
+        Some(spans) => Line::from_iter(spans),
+        None => Line::from_iter([
+            Span::raw("bytes ["),
+            Span::raw(
+                bytes
+                    .iter()
+                    .map(|b| format!(" {b:0>2x}"))
+                    .collect::<String>(),
+            )
+            .blue(),
+            Span::raw(" ]"),
+        ]),
     }
 }

@@ -7,6 +7,8 @@ use ddbug_parser::FileHash;
 use async_fn::AsyncFnType;
 use task_pool::{TaskPool, TaskPoolValue};
 
+use self::task_pool::HeaderLayout;
+
 pub(crate) mod async_fn;
 pub(crate) mod task_pool;
 pub(crate) mod ty;
@@ -66,11 +68,13 @@ impl DebugData {
         let mut async_fn_types = async_fn_types.into_values().collect::<Vec<_>>();
         async_fn_types.sort_unstable_by(|a, b| b.layout.total_size.cmp(&a.layout.total_size));
 
+        let header_layout = HeaderLayout::from_ddbug_data(&file_hash)?;
+
         let mut task_pools = HashMap::new();
         for unit in file.units() {
             for unit_var in unit.variables() {
                 if let Some(task_pool) =
-                    TaskPool::from_ddbug_var(unit_var, &async_fn_types, &file_hash)
+                    TaskPool::from_ddbug_var(unit_var, &async_fn_types, &header_layout, &file_hash)
                 {
                     task_pools.insert(task_pool.path.clone(), task_pool);
                 }
