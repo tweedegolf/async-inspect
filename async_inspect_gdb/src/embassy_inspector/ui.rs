@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
     text::{Line, Span, Text},
-    widgets::{Block, Paragraph},
+    widgets::{Block, Padding, Paragraph},
 };
 
 use crate::{
@@ -44,6 +44,7 @@ pub enum UiEvent {
     AddPage(Box<dyn UiPage + Sync + Send>),
     SetScroll(i32),
     ToggleClosed(Vec<u64>),
+    ToggleDetails(Vec<u64>),
 }
 
 pub trait UiPage: std::fmt::Debug {
@@ -126,74 +127,10 @@ impl UiPage for MainMenu {
     }
 }
 
-// #[derive(Debug, Clone)]
-// struct TaskPool {
-//     pool_idx: usize,
-//     scroll: i32,
-// }
-
-// impl UiPage for TaskPool {
-//     fn apply_scroll(&mut self, scroll: i32) {
-//         self.scroll += scroll;
-//         self.scroll = self.scroll.max(0);
-//     }
-
-//     fn apply_event(&mut self, event: UiEvent) {
-//         match event {
-//             UiEvent::SetScroll(scroll) => self.scroll = scroll,
-//             _ => {}
-//         }
-//     }
-
-//     fn title(&self, values: &[TaskPoolValue]) -> String {
-//         format!("Task pool: {}", values[self.pool_idx].task_pool.path)
-//     }
-
-//     fn draw(&self, ctx: &mut UiDrawCtx, area: Rect) -> Result<(), UiEvent> {
-//         let pool = &ctx.values[self.pool_idx];
-
-//         let mut scroll_view = ScrollView::new(area.as_size(), self.scroll);
-//         for (i, value) in pool.task_values.iter().enumerate() {
-//             let (text, title_color) = match value {
-//                 TaskValue::Uninit => {
-//                     let text = Text::raw("Task is uninitialized");
-//                     (text, Color::Gray)
-//                 }
-//                 TaskValue::Init(FutureValue::AsyncFn(value)) => {
-//                     let text = async_fn_to_text(&value.ty, Some(value), &mut ctx.try_format_value);
-//                     (text, Color::Blue)
-//                 }
-//                 TaskValue::Init(_) => unreachable!(),
-//             };
-
-//             let height = text.height() + 2;
-//             let text = Paragraph::new(text)
-//                 .block(Block::bordered().title(format!("Task {i}").fg(title_color)));
-
-//             let area = scroll_view.render_next_widget(&text, height as u16);
-//             if is_clicked_left(&area, ctx.click) {
-//                 return Err(UiEvent::AddPage(Box::new(Task {
-//                     pool_idx: self.pool_idx,
-//                     task_idx: i,
-
-//                     scroll: 0,
-//                 })));
-//             }
-//         }
-
-//         if scroll_view.max_scroll() < self.scroll {
-//             return Err(UiEvent::SetScroll(scroll_view.max_scroll()));
-//         }
-
-//         ctx.frame.render_widget(scroll_view, area);
-
-//         Ok(())
-//     }
-// }
-
 #[derive(Debug, Clone)]
 struct ItemState {
     closed: bool,
+    details_open: bool,
     children: HashMap<u64, ItemState>,
 }
 
@@ -201,6 +138,7 @@ impl Default for ItemState {
     fn default() -> Self {
         Self {
             closed: false,
+            details_open: false,
             children: HashMap::new(),
         }
     }
@@ -214,6 +152,16 @@ impl ItemState {
             }
             [] => {
                 self.closed = !self.closed;
+            }
+        }
+    }
+    fn toggle_details(&mut self, path: &[u64]) {
+        match path {
+            [head, rest @ ..] => {
+                self.children.entry(*head).or_default().toggle_details(rest);
+            }
+            [] => {
+                self.details_open = !self.details_open;
             }
         }
     }
@@ -273,18 +221,48 @@ impl Task {
                 }
                 line
             }
-            FutureValue::Unknown { ty, bytes } => (ctx.try_format_value)(bytes, ty),
+            FutureValue::Unknown { ty, .. } => Line::raw(ty.to_string()),
+        };
+        let details = if tree_data.item_state.details_open {
+            let text = match tree_data.value {
+                FutureValue::AsyncFn(value) => {
+                    let mut text = Text::raw("");
+                    text.extend(async_fn_to_text(
+                        &value.ty,
+                        Some(value),
+                        &mut ctx.try_format_value,
+                    ));
+                    text
+                }
+                FutureValue::Unknown { bytes, ty } => Text::from((ctx.try_format_value)(bytes, ty)),
+            };
+
+            Some(Paragraph::new(text).wrap(Default::default()))
+        } else {
+            None
         };
 
-        let text = Paragraph::new(line).wrap(Default::default());
-
         let indent = tree_data.path.len() as u16 * 2;
+        let text_width = scroll_view.frame_size().width - indent - 3;
 
-        let height = text.line_count(scroll_view.frame_size().width - indent - 2);
-        let mut area = scroll_view.next_area(height as u16);
+        let line = Paragraph::new(line).wrap(Default::default());
+
+        let line_height = line.line_count(text_width);
+        let detail_height = if let Some(details) = &details {
+            // Adding one for the border
+            details.line_count(text_width) + 1
+        } else {
+            0
+        };
+        let total_height = line_height + detail_height;
+
+        let mut area = scroll_view.next_area(total_height as u16);
+        area.x += indent;
+        area.width -= indent;
+
         let mut button_area = area;
-        button_area.x += indent;
         button_area.width = 2;
+        button_area.height = 1;
         let button_area = scroll_view.render_widget(
             Span::raw(match tree_data.item_state.closed {
                 true => "-",
@@ -296,9 +274,25 @@ impl Task {
             return Err(UiEvent::ToggleClosed(tree_data.path.clone()));
         }
 
-        area.x += indent + 2;
-        area.width -= indent + 2;
-        scroll_view.render_widget(text, area);
+        area.x += 1;
+        area.width -= 1;
+        if let Some(detail) = details {
+            let block = Block::bordered().padding(Padding::top(line_height as u16 - 1));
+            let detail_area = block.inner(area);
+            scroll_view.render_widget(block, area);
+            let area = scroll_view.render_widget(detail, detail_area);
+            if is_clicked_left(&area, ctx.click) {
+                return Err(UiEvent::ToggleDetails(tree_data.path.clone()));
+            }
+        }
+
+        area.x += 1;
+        area.width -= 2; // Minus 2 to leave space for border if details are open
+        area.height = line_height as u16;
+        let area = scroll_view.render_widget(line, area);
+        if is_clicked_left(&area, ctx.click) {
+            return Err(UiEvent::ToggleDetails(tree_data.path.clone()));
+        }
 
         if tree_data.item_state.closed {
             return Ok(());
@@ -337,6 +331,9 @@ impl UiPage for Task {
             UiEvent::SetScroll(scroll) => self.scroll = scroll,
             UiEvent::ToggleClosed(path) => {
                 self.item_state.toggle_closed(&path);
+            }
+            UiEvent::ToggleDetails(path) => {
+                self.item_state.toggle_details(&path);
             }
             _ => {}
         }
