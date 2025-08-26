@@ -2,7 +2,11 @@ use std::collections::HashMap;
 
 use ddbug_parser::{FileHash, Result, StructType, TypeKind};
 
-use super::{from_namespace_and_name, ty::Type};
+use super::{
+    Source,
+    future::{FutureType, FutureValue},
+    ty::Type,
+};
 
 // Defined here: https://github.com/rust-lang/rust/blob/a9fb6103b05c6ad6eee6bed4c0bb5a2e8e1024c6/compiler/rustc_codegen_ssa/src/debuginfo/type_names.rs#L566
 const FUTURE_TYPE_NAMES: &[&str] = &[
@@ -54,6 +58,7 @@ pub(crate) struct State {
 
     pub(crate) awaitee: Option<Member>,
     pub(crate) name: String,
+    pub(crate) source: Option<Source>,
 }
 
 impl State {
@@ -66,19 +71,20 @@ impl State {
         let Some(discriminant_value) = variant.discriminant_value() else {
             return Err("future type varaints should always have discriminant values".into());
         };
-        
+
         Ok(State {
             name: state_name,
             discriminant_value,
             active_members,
             awaitee,
+            source: Source::from_ddbug(variant.source()),
         })
     }
 }
 
 /// The layout of a future type
 #[derive(Debug, Clone)]
-pub(crate) struct Layout {
+pub(crate) struct AsyncFnType {
     pub(crate) members: Vec<Member>,
 
     pub(crate) state_member: Member,
@@ -88,10 +94,35 @@ pub(crate) struct Layout {
     pub(crate) states: Vec<State>,
 }
 
-impl Layout {
+impl AsyncFnType {
+    pub(crate) fn from_ddbug_type(
+        ddbug_type: &ddbug_parser::Type<'_>,
+        file_hash: &FileHash,
+    ) -> Result<Option<Self>> {
+        let TypeKind::Struct(struct_type) = ddbug_type.kind() else {
+            return Ok(None);
+        };
+
+        let Some(struct_name) = struct_type.name() else {
+            return Ok(None);
+        };
+
+        // The rust compiler gives generated Future types names of the form `{async_fn#0}<T,K>`
+        // except on msvc platforms where it uses `async_fn$0<T, K>`.
+        let is_future_type = FUTURE_TYPE_NAMES.iter().any(|future_name| {
+            struct_name.starts_with(future_name) || struct_name[1..].starts_with(future_name)
+        });
+
+        if !is_future_type {
+            return Ok(None);
+        }
+
+        Ok(Some(Self::from_ddbug_struct(struct_type, file_hash)?))
+    }
+
     /// Get the layout of a Future type from the ddbug_type, ddbug_type should always be describing
     /// a future type.
-    fn from_ddbug_type(ddbug_type: &StructType<'_>, file_hash: &FileHash) -> Result<Self> {
+    fn from_ddbug_struct(ddbug_type: &StructType<'_>, file_hash: &FileHash) -> Result<Self> {
         let [variant_part] = ddbug_type.variant_parts() else {
             return Err("Future types should always have a single variant part".into());
         };
@@ -151,15 +182,16 @@ impl Layout {
             return Err("Future types should have a size".into());
         };
 
-        Ok(Self {
+        let mut s = Self {
             members,
-
             state_member,
-
             total_size,
-
             states,
-        })
+        };
+
+        s.sort_members_by_offset();
+
+        Ok(s)
     }
 
     /// Sort the members from smalles to biggest offset while kepping all id refrences intact
@@ -184,49 +216,7 @@ impl Layout {
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct AsyncFnType {
-    pub(crate) path: String,
-    pub(crate) layout: Layout,
-}
-
-impl AsyncFnType {
-    pub(crate) fn from_ddbug_type(
-        ddbug_type: &ddbug_parser::Type<'_>,
-        file_hash: &FileHash,
-    ) -> Result<Option<Self>> {
-        let TypeKind::Struct(struct_type) = ddbug_type.kind() else {
-            return Ok(None);
-        };
-
-        let Some(struct_name) = struct_type.name() else {
-            return Ok(None);
-        };
-
-        // The rust compiler gives generated Future types names of the form `{async_fn#0}<T,K>`
-        // except on msvc platforms where it uses `async_fn$0<T, K>`.
-        let is_future_type = FUTURE_TYPE_NAMES.iter().any(|future_name| {
-            struct_name.starts_with(future_name) || struct_name[1..].starts_with(future_name)
-        });
-
-        if !is_future_type {
-            return Ok(None);
-        }
-
-        let path = from_namespace_and_name(struct_type.namespace(), Some(struct_name));
-
-        let mut layout = Layout::from_ddbug_type(struct_type, file_hash)?;
-        layout.sort_members_by_offset();
-
-        Ok(Some(Self { path, layout }))
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum FutureValue {
-    AsyncFn(AsyncFnValue),
-    Unknown { ty: Type, bytes: Vec<u8> },
-}
+impl AsyncFnType {}
 
 #[derive(Debug)]
 pub(crate) struct MemberValue {
@@ -243,11 +233,16 @@ pub(crate) struct StateValue {
 }
 
 impl StateValue {
-    fn new(state: &State, bytes: &[u8], layout: &Layout, async_fns: &[AsyncFnType]) -> Self {
+    fn new(
+        state: &State,
+        bytes: &[u8],
+        async_fn_type: &AsyncFnType,
+        future_types: &HashMap<Type, FutureType>,
+    ) -> Self {
         let mut members = Vec::new();
 
         for member in &state.active_members {
-            let member = &layout.members[*member];
+            let member = &async_fn_type.members[*member];
 
             let bytes = bytes[member.offset as usize..][..member.size as usize].to_vec();
 
@@ -258,22 +253,9 @@ impl StateValue {
         }
 
         let awaitee = state.awaitee.as_ref().map(|awaitee| {
-            let awaitte_name = awaitee.ty.to_string();
-            let future_type = async_fns
-                .iter()
-                .find(|async_fn| async_fn.path == awaitte_name);
-
             let bytes = &bytes[awaitee.offset as usize..][..awaitee.size as usize];
 
-            let future_value = match future_type {
-                Some(async_fn_type) => {
-                    FutureValue::AsyncFn(AsyncFnValue::new(async_fn_type, bytes, async_fns))
-                }
-                None => FutureValue::Unknown {
-                    ty: awaitee.ty.clone(),
-                    bytes: bytes.to_vec(),
-                },
-            };
+            let future_value = FutureValue::new(&awaitee.ty, bytes, future_types);
 
             Box::new(future_value)
         });
@@ -298,13 +280,11 @@ impl AsyncFnValue {
     pub(crate) fn new(
         async_fn_type: &AsyncFnType,
         bytes: &[u8],
-        async_fns: &[AsyncFnType],
+        future_types: &HashMap<Type, FutureType>,
     ) -> Self {
-        let layout = &async_fn_type.layout;
-
         let state_discriminant = {
-            let bytes = &bytes[layout.state_member.offset as usize..];
-            match layout.state_member.size {
+            let bytes = &bytes[async_fn_type.state_member.offset as usize..];
+            match async_fn_type.state_member.size {
                 1 => u8::from_le_bytes(bytes[..1].try_into().unwrap()) as u64,
                 2 => u16::from_le_bytes(bytes[..2].try_into().unwrap()) as u64,
                 4 => u32::from_le_bytes(bytes[..4].try_into().unwrap()) as u64,
@@ -313,13 +293,13 @@ impl AsyncFnValue {
             }
         };
 
-        let state = layout
+        let state = async_fn_type
             .states
             .iter()
             .find(|s| s.discriminant_value == state_discriminant);
 
         let state_value = state
-            .map(|s| StateValue::new(s, bytes, layout, async_fns))
+            .map(|s| StateValue::new(s, bytes, async_fn_type, future_types))
             .ok_or(state_discriminant);
 
         Self {

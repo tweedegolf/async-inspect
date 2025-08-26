@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::Result;
 
@@ -7,9 +7,10 @@ use ddbug_parser::FileHash;
 use async_fn::AsyncFnType;
 use task_pool::{TaskPool, TaskPoolValue};
 
-use self::task_pool::HeaderLayout;
+use self::{future::FutureType, task_pool::HeaderLayout, ty::Type};
 
 pub(crate) mod async_fn;
+pub(crate) mod future;
 pub(crate) mod task_pool;
 pub(crate) mod ty;
 
@@ -43,11 +44,44 @@ fn from_namespace_and_name(
     result
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Source {
+    pub(crate) path: String,
+    pub(crate) line: u32,
+    pub(crate) column: u32,
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.line, self.column) {
+            (0, _) => write!(f, "{}", self.path),
+            (line, 0) => write!(f, "{}:{}", self.path, line),
+            (line, column) => write!(f, "{}:{}:{}", self.path, line, column),
+        }
+    }
+}
+
+impl Source {
+    fn from_ddbug(source: &ddbug_parser::Source<'_>) -> Option<Self> {
+        let path = match (source.directory(), source.file()?) {
+            (_, "") => return None,
+            (None | Some(""), file) => file.to_owned(),
+            (Some(path), file) => format!("{path}/{file}"),
+        };
+
+        Some(Self {
+            path,
+            line: source.line(),
+            column: source.column(),
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct DebugData {
     pub(crate) poll_done_addresses: Vec<u64>,
 
-    pub(crate) async_fn_types: Vec<AsyncFnType>,
+    pub(crate) future_types: HashMap<Type, FutureType>,
     pub(crate) task_pools: Vec<TaskPool>,
 }
 
@@ -57,16 +91,16 @@ impl DebugData {
         let file = file.file();
         let file_hash = FileHash::new(file);
 
-        let mut async_fn_types = HashMap::new();
+        let mut future_types = HashMap::new();
         for unit in file.units() {
             for unit_type in unit.types() {
-                if let Some(future) = AsyncFnType::from_ddbug_type(unit_type, &file_hash)? {
-                    async_fn_types.insert(future.path.clone(), future);
+                if let Some(future) = FutureType::from_ddbug_type(unit_type, &file_hash)? {
+                    let ty = Type::from_ddbug_type(unit_type, &file_hash);
+                    future_types.insert(ty, future);
                 }
             }
         }
-        let mut async_fn_types = async_fn_types.into_values().collect::<Vec<_>>();
-        async_fn_types.sort_unstable_by(|a, b| b.layout.total_size.cmp(&a.layout.total_size));
+        // log::error!("{:?}", future_types);
 
         let header_layout = HeaderLayout::from_ddbug_data(&file_hash)?;
 
@@ -74,15 +108,14 @@ impl DebugData {
         for unit in file.units() {
             for unit_var in unit.variables() {
                 if let Some(task_pool) =
-                    TaskPool::from_ddbug_var(unit_var, &async_fn_types, &header_layout, &file_hash)
+                    TaskPool::from_ddbug_var(unit_var, &future_types, &header_layout, &file_hash)?
                 {
                     task_pools.insert(task_pool.path.clone(), task_pool);
                 }
             }
         }
         let mut task_pools = task_pools.into_values().collect::<Vec<_>>();
-        task_pools
-            .sort_unstable_by_key(|task| std::cmp::Reverse(task.async_fn_type.layout.total_size));
+        task_pools.sort_unstable_by_key(|task| std::cmp::Reverse(task.async_fn_type.total_size));
 
         let poll_done_addresses = find_poll_function_addresses(&file_hash);
         if poll_done_addresses.is_empty() {
@@ -94,12 +127,12 @@ impl DebugData {
         Ok(Self {
             poll_done_addresses,
             task_pools,
-            async_fn_types,
+            future_types,
         })
     }
 
     pub(crate) fn get_taskpool_value(&self, task_pool: &TaskPool, bytes: &[u8]) -> TaskPoolValue {
-        TaskPoolValue::new(task_pool, bytes, &self.async_fn_types)
+        TaskPoolValue::new(task_pool, bytes, &self.future_types)
     }
 }
 

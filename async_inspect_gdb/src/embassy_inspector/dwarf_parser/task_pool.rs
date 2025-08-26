@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use super::{
-    async_fn::{AsyncFnType, AsyncFnValue, FutureValue},
+    async_fn::{AsyncFnType, AsyncFnValue},
+    future::{FutureType, FutureTypeKind, FutureValue},
     namespace_to_path,
+    ty::Type,
 };
 
 use ddbug_parser::{FileHash, Result, TypeKind};
@@ -108,6 +112,7 @@ pub(crate) struct TaskPool {
 
     // The async fn type this pool stores
     pub(crate) async_fn_type: AsyncFnType,
+    pub(crate) async_fn_base_type: Type,
 
     pub(crate) header_layout: HeaderLayout,
 }
@@ -134,59 +139,133 @@ impl TaskPool {
         return None;
     }
 
+    fn find_future_type_from_task_storage(
+        task_storage: &ddbug_parser::Type<'_>,
+        file_hash: &FileHash<'_>,
+    ) -> Option<Type> {
+        match task_storage.kind() {
+            TypeKind::Struct(struct_type) => {
+                for member in struct_type.members() {
+                    if member.name() != Some("future") {
+                        continue;
+                    }
+
+                    match member.ty(file_hash)?.kind() {
+                        TypeKind::Struct(struct_type) => {
+                            let [member] = struct_type.members() else {
+                                return None;
+                            };
+
+                            return Some(Type::from_maybe_ddbug_type(
+                                member.ty(file_hash),
+                                file_hash,
+                            ));
+                        }
+                        _ => return None,
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+
     // TODO: make this work when embassy is compiled with nightly
     pub(crate) fn from_ddbug_var(
         unit_var: &ddbug_parser::Variable<'_>,
-        async_fn_types: &Vec<AsyncFnType>,
+        future_types: &HashMap<Type, FutureType>,
         header_layout: &HeaderLayout,
         file_hash: &FileHash<'_>,
-    ) -> Option<Self> {
-        if unit_var.name()? != "POOL" {
-            return None;
+    ) -> Result<Option<Self>> {
+        if unit_var.name() != Some("POOL") {
+            return Ok(None);
         }
-        let ty = unit_var.ty(file_hash)?;
+        let Some(ty) = unit_var.ty(file_hash) else {
+            return Ok(None);
+        };
         match ty.kind() {
             ddbug_parser::TypeKind::Struct(struct_type) => {
-                if !struct_type.name()?.starts_with("TaskPoolHolder") {
-                    return None;
+                let Some(name) = struct_type.name() else {
+                    return Ok(None);
+                };
+                if !name.starts_with("TaskPoolHolder") {
+                    return Ok(None);
                 }
             }
-            _ => return None,
+            _ => return Ok(None),
         }
 
-        let namespace = unit_var.namespace()?;
+        let namespace = unit_var
+            .namespace()
+            .ok_or("TaskPoolHolder needs a namespace")?;
 
         // The task macro generates a namesapce with the name of the function, so the path generated
         // from only the namespaces will actually end in the name of the original task function.
         let path = namespace_to_path(namespace);
-        let task_name = namespace_to_path(namespace.parent()?);
-        let task_name = task_name + "::__" + namespace.name()? + "_task";
+        let task_name = namespace_to_path(
+            namespace
+                .parent()
+                .ok_or("TaskPoolHolder's namespace needs a parent")?,
+        );
+        let task_name = task_name
+            + "::__"
+            + namespace
+                .name()
+                .ok_or("TaskPoolHolder's namespace parent needs a name")?
+            + "_task";
 
-        let address = unit_var.address()?;
-        let size = unit_var.byte_size(file_hash)?;
+        let address = unit_var.address().ok_or("TaskPoolHolder needs a address")?;
+        let size = unit_var
+            .byte_size(file_hash)
+            .ok_or("TaskPoolHolder needs a sie")?;
 
-        let task_pool_type = Self::find_taks_pool(&task_name, file_hash)?;
+        let task_pool_type = Self::find_taks_pool(&task_name, file_hash).ok_or(format!(
+            "Could not find task pool type for task pool: {task_name}"
+        ))?;
         let [task_pool_member] = task_pool_type.members() else {
-            return None;
+            return Err("TaskPool needs a single member".into());
         };
-        let number_of_tasks = match task_pool_member.ty(file_hash)?.kind() {
-            ddbug_parser::TypeKind::Array(array_type) => array_type.counts().next()??,
-            _ => return None,
-        } as usize;
 
-        let async_fn_type = async_fn_types
+        let number_of_tasks = match task_pool_member
+            .ty(file_hash)
+            .ok_or("TaskPool's member needs a type")?
+            .kind()
+        {
+            ddbug_parser::TypeKind::Array(array_type) => {
+                let count = array_type
+                    .counts()
+                    .next()
+                    .flatten()
+                    .ok_or("TaskPool inner array needs to have a known size")?;
+                count as usize
+            }
+            _ => return Err("TaskPool member type needs to be a array".into()),
+        };
+
+        let (async_fn_base_type, async_fn_type) = future_types
             .iter()
-            .find(|ty| ty.path.starts_with(&task_name))?
-            .clone();
+            .find(|(ty, _)| match ty {
+                Type::Base(name) => name.starts_with(&task_name),
+                _ => false,
+            })
+            .ok_or(format!(
+                "Could not find future type for task pool: {}",
+                task_name
+            ))?;
 
-        Some(Self {
+        let FutureTypeKind::AsyncFn(async_fn_type) = &async_fn_type.kind else {
+            return Err("Task pool had a non async fn future type".into());
+        };
+
+        Ok(Some(Self {
             path,
             address,
             size,
             number_of_tasks,
-            async_fn_type,
+            async_fn_type: async_fn_type.clone(),
             header_layout: header_layout.clone(),
-        })
+            async_fn_base_type: async_fn_base_type.clone(),
+        }))
     }
 }
 
@@ -204,12 +283,16 @@ pub(crate) struct TaskPoolValue {
 }
 
 impl TaskPoolValue {
-    pub(crate) fn new(task_pool: &TaskPool, bytes: &[u8], async_fns: &[AsyncFnType]) -> Self {
+    pub(crate) fn new(
+        task_pool: &TaskPool,
+        bytes: &[u8],
+        future_types: &HashMap<Type, FutureType>,
+    ) -> Self {
         assert_eq!(bytes.len() as u64, task_pool.size);
         let mut task_values = Vec::new();
 
         let len_single_task = task_pool.size / task_pool.number_of_tasks as u64;
-        let async_fn_offset = len_single_task - task_pool.async_fn_type.layout.total_size;
+        let async_fn_offset = len_single_task - task_pool.async_fn_type.total_size;
 
         for task in 0..task_pool.number_of_tasks {
             let task_offset = len_single_task as usize * task;
@@ -219,11 +302,10 @@ impl TaskPoolValue {
             let task_value = if task_pool.header_layout.is_init(bytes) {
                 let bytes = &bytes[async_fn_offset as usize..];
 
-                TaskValue::Init(FutureValue::AsyncFn(AsyncFnValue::new(
-                    &task_pool.async_fn_type,
-                    bytes,
-                    async_fns,
-                )))
+                TaskValue::Init(FutureValue::async_fn(
+                    &task_pool.async_fn_base_type,
+                    AsyncFnValue::new(&task_pool.async_fn_type, bytes, future_types),
+                ))
             } else {
                 TaskValue::Uninit
             };

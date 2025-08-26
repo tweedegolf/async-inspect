@@ -12,7 +12,7 @@ use ratatui::{
 };
 
 use crate::{
-    embassy_inspector::dwarf_parser::async_fn::{FutureValue, Member},
+    embassy_inspector::dwarf_parser::{async_fn::Member, future::FutureValue},
     scroll_view::ScrollView,
 };
 
@@ -20,6 +20,7 @@ use super::{
     Click, ClickButton, Type,
     dwarf_parser::{
         async_fn::{AsyncFnType, AsyncFnValue},
+        future::FutureValueKind,
         task_pool::{TaskPoolValue, TaskValue},
     },
 };
@@ -60,6 +61,12 @@ pub trait UiPage: std::fmt::Debug {
 #[derive(Debug, Clone)]
 struct MainMenu {
     scroll: i32,
+}
+
+impl MainMenu {
+    fn new() -> Self {
+        Self { scroll: 0 }
+    }
 }
 
 impl UiPage for MainMenu {
@@ -199,16 +206,21 @@ impl Task {
     ) -> Result<(), UiEvent> {
         let mut children = Vec::<(&FutureValue, u64)>::new();
 
-        let line = match tree_data.value {
-            FutureValue::AsyncFn(value) => {
+        let line = match &tree_data.value.kind {
+            FutureValueKind::AsyncFn(value) => {
                 let mut line = Line::from_iter([
                     Span::raw("Function "),
-                    Span::raw(&value.ty.path).blue(),
+                    Span::raw(tree_data.value.ty.to_string()).blue(),
                     Span::raw(" is waiting at "),
                 ]);
                 match &value.state_value {
                     Ok(state) => {
                         line.push_span(Span::raw(&state.state.name).blue());
+                        if let Some(source) = &state.state.source {
+                            line.push_span(Span::raw(" ("));
+                            line.push_span(Span::raw(source.to_string()).blue());
+                            line.push_span(Span::raw(")"));
+                        }
                         if let Some(awaitee) = &state.awaitee {
                             line.push_span(Span::raw(" on:"));
 
@@ -221,11 +233,22 @@ impl Task {
                 }
                 line
             }
-            FutureValue::Unknown { ty, .. } => Line::raw(ty.to_string()),
+            FutureValueKind::SelectValue(value) => {
+                let line = Line::from_iter([
+                    Span::raw("Select waiting on "),
+                    Span::raw(value.awaitees.len().to_string()).blue(),
+                    Span::raw(" futures:"),
+                ]);
+                for (i, awaitee) in value.awaitees.iter().enumerate() {
+                    children.push((awaitee, i as u64));
+                }
+                line
+            }
+            FutureValueKind::Unknown { .. } => Line::raw(tree_data.value.ty.to_string()),
         };
         let details = if tree_data.item_state.details_open {
-            let text = match tree_data.value {
-                FutureValue::AsyncFn(value) => {
+            let text = match &tree_data.value.kind {
+                FutureValueKind::AsyncFn(value) => {
                     let mut text = Text::raw("");
                     text.extend(async_fn_to_text(
                         &value.ty,
@@ -234,7 +257,12 @@ impl Task {
                     ));
                     text
                 }
-                FutureValue::Unknown { bytes, ty } => Text::from((ctx.try_format_value)(bytes, ty)),
+                FutureValueKind::SelectValue(_) => {
+                    Text::from("Select polls ready the moment one of its childs is ready")
+                }
+                FutureValueKind::Unknown(bytes) => {
+                    Text::from((ctx.try_format_value)(bytes, &tree_data.value.ty))
+                }
             };
 
             Some(Paragraph::new(text).wrap(Default::default()))
@@ -243,7 +271,14 @@ impl Task {
         };
 
         let indent = tree_data.path.len() as u16 * 2;
-        let text_width = scroll_view.frame_size().width - indent - 3;
+        let text_width = scroll_view
+            .frame_size()
+            .width
+            .saturating_sub(indent)
+            .saturating_sub(3);
+        if text_width == 0 {
+            return Ok(());
+        }
 
         let line = Paragraph::new(line).wrap(Default::default());
 
@@ -275,7 +310,7 @@ impl Task {
         }
 
         area.x += 1;
-        area.width -= 1;
+        area.width = area.width.saturating_sub(1);
         if let Some(detail) = details {
             let block = Block::bordered().padding(Padding::top(line_height as u16 - 1));
             let detail_area = block.inner(area);
@@ -287,7 +322,7 @@ impl Task {
         }
 
         area.x += 1;
-        area.width -= 2; // Minus 2 to leave space for border if details are open
+        area.width = area.width.saturating_sub(2); // Minus 2 to leave space for border if details are open
         area.height = line_height as u16;
         let area = scroll_view.render_widget(line, area);
         if is_clicked_left(&area, ctx.click) {
@@ -370,6 +405,14 @@ impl UiPage for Task {
                 };
 
                 Self::add_future(&tree_data, &mut scroll_view, ctx)?;
+
+                scroll_view.render_next_widget(Line::default(), 1);
+                scroll_view.render_next_widget(
+                    Line::raw(
+                        "Click on a future to see details. Use the +/- to collapse/open awaitee's",
+                    ),
+                    1,
+                );
             }
         }
 
@@ -391,7 +434,7 @@ pub(crate) struct UiState {
 impl UiState {
     pub(crate) fn new() -> Self {
         Self {
-            page_stack: vec![Box::new(MainMenu { scroll: 0 })],
+            page_stack: vec![Box::new(MainMenu::new())],
         }
     }
 
@@ -504,17 +547,17 @@ where
         )))
     };
 
-    for member in &ty.layout.members {
+    for member in &ty.members {
         let pos = add_member(member);
         member_positions.push(pos);
     }
-    let state_pos = add_member(&ty.layout.state_member);
+    let state_pos = add_member(&ty.state_member);
 
     let awaitee_pos = add_col(Span::raw("awaitee"));
 
     let mut text = Text::from_iter([members_line, Line::default()]);
 
-    for state in &ty.layout.states {
+    for state in &ty.states {
         let (name, highlight) = if let Some(value) = value
             && let Ok(state_value) = &value.state_value
             && state_value.state.discriminant_value == state.discriminant_value
@@ -558,7 +601,7 @@ where
     }
     text.push_line(Line::default());
 
-    for member in &ty.layout.members {
+    for member in &ty.members {
         let mut line = Line::raw(format!(
             "{:>2}[{}] {:<15}: {}",
             member.offset, member.size, member.name, member.ty

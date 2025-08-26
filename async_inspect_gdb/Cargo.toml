@@ -16,5 +16,5 @@ pyo3-log = "0.12.4"
 ratatui = { version = "0.29.0", default-features = false, features = ["unstable-rendered-line-info"] }
 termion = "4.0.5"
 
-ddbug_parser = "0.4.0"
+ddbug_parser = { git = "https://github.com/gimli-rs/ddbug.git", rev = "60d4311c48bedb25018150c6752e0a9041e80ab2" }
 ansi-to-tui = "7.0.0"

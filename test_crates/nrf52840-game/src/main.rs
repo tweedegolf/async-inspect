@@ -3,7 +3,10 @@
 
 use defmt::info;
 use embassy_executor::Spawner;
-use embassy_futures::{join::join_array, select::select_array};
+use embassy_futures::{
+    join::join_array,
+    select::{select_array, select4},
+};
 use embassy_nrf::{
     bind_interrupts,
     gpio::{Input, Level, Output, OutputDrive, Pull},
@@ -68,9 +71,21 @@ async fn game(
             }
 
             for i in &sequence[..len] {
-                let b_i = select_array(buttons.each_mut().map(|b| b.wait_for_low()))
-                    .await
-                    .1;
+                let [a, b, c, d] = &mut buttons;
+
+                let select = select4(
+                    a.wait_for_low(),
+                    b.wait_for_low(),
+                    c.wait_for_low(),
+                    d.wait_for_low(),
+                )
+                .await;
+                let b_i = match select {
+                    embassy_futures::select::Either4::First(_) => 0,
+                    embassy_futures::select::Either4::Second(_) => 1,
+                    embassy_futures::select::Either4::Third(_) => 2,
+                    embassy_futures::select::Either4::Fourth(_) => 3,
+                };
 
                 leds[*i as usize].set_low();
                 if b_i != *i as usize {
