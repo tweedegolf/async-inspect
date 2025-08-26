@@ -4,7 +4,6 @@ use anyhow::Result;
 
 use ddbug_parser::FileHash;
 
-use async_fn::AsyncFnType;
 use task_pool::{TaskPool, TaskPoolValue};
 
 use self::{future::FutureType, task_pool::HeaderLayout, ty::Type};

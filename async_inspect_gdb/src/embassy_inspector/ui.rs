@@ -235,7 +235,18 @@ impl Task {
             }
             FutureValueKind::SelectValue(value) => {
                 let line = Line::from_iter([
-                    Span::raw("Select waiting on "),
+                    Span::raw("Select waiting on one off "),
+                    Span::raw(value.awaitees.len().to_string()).blue(),
+                    Span::raw(" futures:"),
+                ]);
+                for (i, awaitee) in value.awaitees.iter().enumerate() {
+                    children.push((awaitee, i as u64));
+                }
+                line
+            }
+            FutureValueKind::JoinValue(value) => {
+                let line = Line::from_iter([
+                    Span::raw("Join waiting on "),
                     Span::raw(value.awaitees.len().to_string()).blue(),
                     Span::raw(" futures:"),
                 ]);
@@ -259,6 +270,9 @@ impl Task {
                 }
                 FutureValueKind::SelectValue(_) => {
                     Text::from("Select polls ready the moment one of its childs is ready")
+                }
+                FutureValueKind::JoinValue(_) => {
+                    Text::from("Select polls ready once all of its children have polled ready once")
                 }
                 FutureValueKind::Unknown(bytes) => {
                     Text::from((ctx.try_format_value)(bytes, &tree_data.value.ty))

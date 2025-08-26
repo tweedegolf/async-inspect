@@ -139,37 +139,6 @@ impl TaskPool {
         return None;
     }
 
-    fn find_future_type_from_task_storage(
-        task_storage: &ddbug_parser::Type<'_>,
-        file_hash: &FileHash<'_>,
-    ) -> Option<Type> {
-        match task_storage.kind() {
-            TypeKind::Struct(struct_type) => {
-                for member in struct_type.members() {
-                    if member.name() != Some("future") {
-                        continue;
-                    }
-
-                    match member.ty(file_hash)?.kind() {
-                        TypeKind::Struct(struct_type) => {
-                            let [member] = struct_type.members() else {
-                                return None;
-                            };
-
-                            return Some(Type::from_maybe_ddbug_type(
-                                member.ty(file_hash),
-                                file_hash,
-                            ));
-                        }
-                        _ => return None,
-                    }
-                }
-                None
-            }
-            _ => None,
-        }
-    }
-
     // TODO: make this work when embassy is compiled with nightly
     pub(crate) fn from_ddbug_var(
         unit_var: &ddbug_parser::Variable<'_>,
