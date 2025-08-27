@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = [
+  "embassy_inspect",
+  "gdb_backend",
+]
+exclude = [
+  "test_crates"
+]
+
+[workspace.dependencies]
+
+embassy_inspect = { path = "embassy_inspect" }
