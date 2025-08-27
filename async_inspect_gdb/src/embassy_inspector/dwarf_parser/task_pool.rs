@@ -106,6 +106,8 @@ pub(crate) struct TaskPool {
     pub(crate) address: u64,
     // Amount of bytes for the whole pool
     pub(crate) size: u64,
+    // The offset of a future from the start of a element in the array
+    pub(crate) future_offset: u64,
 
     // Maximum number of thask this pool can hold.
     pub(crate) number_of_tasks: usize,
@@ -137,6 +139,22 @@ impl TaskPool {
         }
 
         return None;
+    }
+
+    fn find_future_offset_task_storage(task_storage: &ddbug_parser::Type<'_>) -> Option<u64> {
+        match task_storage.kind() {
+            TypeKind::Struct(struct_type) => {
+                for member in struct_type.members() {
+                    if member.name() != Some("future") {
+                        continue;
+                    }
+
+                    return Some(member.bit_offset() / 8);
+                }
+                None
+            }
+            _ => None,
+        }
     }
 
     // TODO: make this work when embassy is compiled with nightly
@@ -195,7 +213,7 @@ impl TaskPool {
             return Err("TaskPool needs a single member".into());
         };
 
-        let number_of_tasks = match task_pool_member
+        let (number_of_tasks, storage_type) = match task_pool_member
             .ty(file_hash)
             .ok_or("TaskPool's member needs a type")?
             .kind()
@@ -206,10 +224,17 @@ impl TaskPool {
                     .next()
                     .flatten()
                     .ok_or("TaskPool inner array needs to have a known size")?;
-                count as usize
+                let storage_type = array_type
+                    .element_type(file_hash)
+                    .ok_or("TaskPool need to have a known element type")?;
+
+                (count as usize, storage_type)
             }
             _ => return Err("TaskPool member type needs to be a array".into()),
         };
+
+        let future_offset = Self::find_future_offset_task_storage(&storage_type)
+            .ok_or("Could not find future_offset in TaskStorage")?;
 
         let (async_fn_base_type, async_fn_type) = future_types
             .iter()
@@ -228,9 +253,12 @@ impl TaskPool {
 
         Ok(Some(Self {
             path,
+
             address,
             size,
+            future_offset,
             number_of_tasks,
+
             async_fn_type: async_fn_type.clone(),
             header_layout: header_layout.clone(),
             async_fn_base_type: async_fn_base_type.clone(),
@@ -261,7 +289,6 @@ impl TaskPoolValue {
         let mut task_values = Vec::new();
 
         let len_single_task = task_pool.size / task_pool.number_of_tasks as u64;
-        let async_fn_offset = len_single_task - task_pool.async_fn_type.total_size;
 
         for task in 0..task_pool.number_of_tasks {
             let task_offset = len_single_task as usize * task;
@@ -269,7 +296,7 @@ impl TaskPoolValue {
             let bytes = &bytes[task_offset..];
 
             let task_value = if task_pool.header_layout.is_init(bytes) {
-                let bytes = &bytes[async_fn_offset as usize..];
+                let bytes = &bytes[task_pool.future_offset as usize..];
 
                 TaskValue::Init(FutureValue::async_fn(
                     &task_pool.async_fn_base_type,

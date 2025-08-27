@@ -272,8 +272,9 @@ impl StateValue {
 pub(crate) struct AsyncFnValue {
     pub(crate) ty: AsyncFnType,
 
-    /// Err value is the found discriminat value that does not have a coresponding State
-    pub(crate) state_value: std::result::Result<StateValue, u64>,
+    /// Err value is the found discriminat value that does not have a coresponding State and the
+    /// bytes that supositly contained the AsyncFn.
+    pub(crate) state_value: std::result::Result<StateValue, (u64, Vec<u8>)>,
 }
 
 impl AsyncFnValue {
@@ -300,7 +301,7 @@ impl AsyncFnValue {
 
         let state_value = state
             .map(|s| StateValue::new(s, bytes, async_fn_type, future_types))
-            .ok_or(state_discriminant);
+            .ok_or((state_discriminant, bytes.to_vec()));
 
         Self {
             ty: async_fn_type.clone(),

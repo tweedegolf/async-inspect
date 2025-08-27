@@ -227,7 +227,7 @@ impl Task {
                             children.push((awaitee, state.state.discriminant_value));
                         }
                     }
-                    Err(err_discr) => {
+                    Err((err_discr, _)) => {
                         line.push_span(format!("<invalid discriminant {err_discr}>").blue());
                     }
                 }
@@ -261,6 +261,20 @@ impl Task {
             let text = match &tree_data.value.kind {
                 FutureValueKind::AsyncFn(value) => {
                     let mut text = Text::raw("");
+                    if let Err((_, bytes)) = &value.state_value {
+                        let line = Line::from_iter([
+                            Span::raw("bytes ["),
+                            Span::raw(
+                                bytes
+                                    .iter()
+                                    .map(|b| format!(" {b:0>2x}"))
+                                    .collect::<String>(),
+                            )
+                            .blue(),
+                            Span::raw(" ]"),
+                        ]);
+                        text.push_line(line);
+                    }
                     text.extend(async_fn_to_text(
                         &value.ty,
                         Some(value),
