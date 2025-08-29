@@ -22,7 +22,7 @@ class PyO3Breakpoint(gdb.Breakpoint):
             return True
 
 
-gdb.register_window_type("async_inspect_window", gdb_backend.GdbTui)
-gdb.execute("tui new-layout async_inspect async_inspect_window 1 status 0 cmd 1")
+gdb.register_window_type("embassy_inspect_window", gdb_backend.GdbTui)
+gdb.execute("tui new-layout embassy_inspect embassy_inspect_window 1 status 0 cmd 1")
 print("Async inspect loaded")
 
