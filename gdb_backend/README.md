@@ -33,7 +33,7 @@
   sys.path.extend(paths)
   end
   ```
-1. Enter the virtual enviroment
+1. Enter the virtual environment
    ```
    source ./.venv/bin/activate
    ```
@@ -42,13 +42,24 @@
    rust-gdb /path/to/binary-file
    (gdb) target remote :1337
    ```
-3. Run the following GDB commands to start the 
+3. Run the following GDB commands to start the TUI
    ```
    (gdb) source embassy_inspect.py
    (gdb) tui layout embassy_inspect
    (gdb) continue
    ```
-4. The embassy inspect TUI should now open at the top of the GDB window, use your mouese to interact
-   with it.
-   > [!NOTE]
-   > On my laptop only an external mouse can be used to click inside GDB, the trackpad does not work.
+
+> [!TIP]
+> Use `(gdb) focus cmd` to be able to use the arrow keys for history in gdb again.
+
+4. The embassy inspect TUI should now open at the top of the GDB window, you will have to use it via
+   a mouse as GDB does not pass key presses along.
+
+> [!NOTE]
+> On my laptop only an external mouse can be used to click inside GDB, the trackpad does not work.
+
+> [!TIP]
+> After hitting the embassy inspect set breakpoint once it will be possible to run commands again,
+> but the gdb display will not show the `(gdb)`. Just start typing and it should appear.
+> 
+> TODO: improve this situation
