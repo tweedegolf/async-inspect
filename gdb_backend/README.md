@@ -21,10 +21,15 @@ end
 ```
 source ./.venv/bin/activate
 ```
-- Start GDB
+- Start GDB and connect to the target
 
 - Run the following commands
 ```
 source async_inspect.py
 tui layout async_inspect
 ```
+
+
+## Note on mouse support
+The TUI is supposed to be used using a mouse as GDB does not pass key presses along. Interestingly
+on mine laptop only an external mouse can be used to click inside GDB, the trackpad does not work.

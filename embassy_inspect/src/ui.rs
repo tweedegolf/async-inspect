@@ -108,14 +108,23 @@ impl UiPage for MainMenu {
             scroll_view.render_widget(Line::raw("Tasks in pool:"), area);
             area.y += 1;
             for (task_idx, task) in pool.task_values.iter().enumerate() {
-                let init = match task {
-                    TaskValue::Uninit => Span::raw("uninitialized").gray(),
-                    TaskValue::Init(_) => Span::raw("spawned").blue(),
-                };
-                let vis_area = scroll_view.render_widget(
-                    Line::from_iter([Span::raw(format!("- {task_idx}: ")), init]),
-                    area,
-                );
+                let mut line = Line::raw(format!("- {task_idx}: "));
+                match task {
+                    TaskValue::Uninit => line.push_span(Span::raw("uninitialized").gray()),
+                    TaskValue::Init(value) => {
+                        line.push_span(Span::raw("spawned").blue());
+
+                        if let FutureValueKind::AsyncFn(async_fn) = &value.kind
+                            && let Ok(state) = &async_fn.state_value
+                            && let Some(source) = &state.state.source
+                        {
+                            line.push_span(Span::raw(" waiting at ("));
+                            line.push_span(Span::from(source.to_string()).blue());
+                            line.push_span(Span::raw(")"));
+                        }
+                    }
+                }
+                let vis_area = scroll_view.render_widget(line, area);
                 if is_clicked_left(&vis_area, ctx.click) {
                     return Err(UiEvent::AddPage(Box::new(Task::new(pool_idx, task_idx))));
                 }
