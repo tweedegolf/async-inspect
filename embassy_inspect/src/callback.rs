@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::ty::Type;
 
-pub trait Backend {
+pub trait Callback {
     /// Get the paths to any known objectfiles.
     fn get_objectfiles(&mut self) -> Result<impl Iterator<Item = String>>;
 

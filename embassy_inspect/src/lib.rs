@@ -1,4 +1,4 @@
-mod backend;
+mod callback;
 mod dwarf_parser;
 mod scroll_view;
 mod ui;
@@ -16,7 +16,7 @@ use ratatui::{
 use dwarf_parser::{DebugData, task_pool::TaskPoolValue};
 use ui::{UiDrawCtx, UiState};
 
-pub use crate::backend::Backend;
+pub use crate::callback::Callback;
 pub use dwarf_parser::ty;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -61,9 +61,9 @@ pub struct EmbassyInspector<RB: ratatui::backend::Backend> {
 }
 
 impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
-    pub fn new<B: Backend>(ratatui_backend: RB, backend: &mut B) -> Result<Self> {
+    pub fn new<C: Callback>(ratatui_backend: RB, callback: &mut C) -> Result<Self> {
         let object_file = {
-            let mut object_files = backend.get_objectfiles()?;
+            let mut object_files = callback.get_objectfiles()?;
             object_files
                 .next()
                 .ok_or(anyhow!("Need atleast one objectfile"))?
@@ -73,7 +73,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
 
         let mut poll_break_point_ids = Vec::new();
         for addr in &debug_data.poll_done_addresses {
-            let id = backend.set_breakpoint(*addr)?;
+            let id = callback.set_breakpoint(*addr)?;
             poll_break_point_ids.push(id);
         }
 
@@ -87,16 +87,16 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
             last_values: Vec::new(),
             formating_cache: HashMap::new(),
         };
-        s.update_values(backend);
+        s.update_values(callback);
         Ok(s)
     }
 
-    fn update_values<B: Backend>(&mut self, backend: &mut B) {
+    fn update_values<C: Callback>(&mut self, callback: &mut C) {
         self.last_values.clear();
         self.formating_cache.clear();
 
         for task_pool in &self.debug_data.task_pools {
-            let bytes = match backend.read_memory(task_pool.address, task_pool.size) {
+            let bytes = match callback.read_memory(task_pool.address, task_pool.size) {
                 Ok(bytes) => bytes,
                 Err(e) => {
                     log::error!("{}", e);
@@ -110,7 +110,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
         }
     }
 
-    pub fn handle_event<B: Backend>(&mut self, event: Event, backend: &mut B) -> Result<()> {
+    pub fn handle_event<C: Callback>(&mut self, event: Event, callback: &mut C) -> Result<()> {
         let click = match event {
             Event::Redraw => {
                 // we redraw afther every event.
@@ -122,16 +122,16 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 None
             }
             Event::Breakpoint(i) => {
-                self.update_values(backend);
+                self.update_values(callback);
 
                 if self.poll_break_point_ids.contains(&i) {
                     log::error!("Poll hit, coninuing");
-                    backend.resume()?;
+                    callback.resume()?;
                 }
                 None
             }
             Event::Stoped => {
-                self.update_values(backend);
+                self.update_values(callback);
                 None
             }
         };
@@ -144,7 +144,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
                 try_format_value: &mut |b, ty| {
                     self.formating_cache
                         .entry((b.to_vec(), ty.clone()))
-                        .or_insert_with_key(|(b, t)| format_value(b, t, backend))
+                        .or_insert_with_key(|(b, t)| format_value(b, t, callback))
                         .clone()
                 },
             };
@@ -162,8 +162,8 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
     }
 }
 
-fn format_value<B: Backend>(bytes: &[u8], ty: &ty::Type, backend: &mut B) -> Line<'static> {
-    match backend
+fn format_value<C: Callback>(bytes: &[u8], ty: &ty::Type, callback: &mut C) -> Line<'static> {
+    match callback
         .try_format_value(&bytes, &ty)
         .and_then(|formatted| ansi_to_tui::IntoText::into_text(&formatted).ok())
         .map(|text| text.into_iter().flatten())

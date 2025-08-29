@@ -1,6 +1,6 @@
 ## Build dependencies
 - Rust [(install here)](https://www.rust-lang.org/tools/install)
-- uv [(install here)](https://github.com/astral-sh/uv)
+- uv [(install here)](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)
 
 ## Building
 1. Clone this directory: 
@@ -48,12 +48,11 @@
    (gdb) tui layout embassy_inspect
    (gdb) continue
    ```
+4. The embassy inspect TUI should now open at the top of the GDB window, you will have to use it via
+   a mouse as GDB does not pass key presses along.
 
 > [!TIP]
 > Use `(gdb) focus cmd` to be able to use the arrow keys for history in gdb again.
-
-4. The embassy inspect TUI should now open at the top of the GDB window, you will have to use it via
-   a mouse as GDB does not pass key presses along.
 
 > [!NOTE]
 > On my laptop only an external mouse can be used to click inside GDB, the trackpad does not work.
