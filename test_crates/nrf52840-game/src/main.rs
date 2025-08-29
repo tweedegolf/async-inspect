@@ -67,7 +67,7 @@ async fn game(
             }
 
             for i in &sequence[..len] {
-                let b_i = select_array(buttons.each_mut().map(|b| b.wait_for_low()).as_mut_slice())
+                let b_i = select_array(buttons.each_mut().map(|b| b.wait_for_low()))
                     .await
                     .1;
 

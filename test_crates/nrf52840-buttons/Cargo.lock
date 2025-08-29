@@ -548,7 +548,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nrf52840-demo"
+name = "nrf52840-buttons"
 version = "0.1.0"
 dependencies = [
  "cortex-m",
@@ -556,7 +556,6 @@ dependencies = [
  "defmt 1.0.1",
  "defmt-rtt",
  "embassy-executor 0.8.0",
- "embassy-futures",
  "embassy-nrf",
  "embassy-time",
  "panic-probe",

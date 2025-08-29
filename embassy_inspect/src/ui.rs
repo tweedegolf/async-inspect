@@ -245,7 +245,7 @@ impl Task {
             }
             FutureValueKind::SelectValue(value) => {
                 let line = Line::from_iter([
-                    Span::raw("Select waiting on one off "),
+                    Span::raw("Select waiting on one of "),
                     Span::raw(value.awaitees.len().to_string()).blue(),
                     Span::raw(" futures:"),
                 ]);

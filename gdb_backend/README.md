@@ -1,6 +1,6 @@
 # Setup
 - Install [`uv`](https://github.com/astral-sh/uv)
-- Build project: `uv run maturin develop`
+- Build project: `uv run maturin develop -r`
 
 - Add the following to `~/.config/gdb/gdbinit` to make gdb work with python virtual environments
 ```
