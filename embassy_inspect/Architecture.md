@@ -4,5 +4,5 @@ The library gets started by a backend and uses the `Callback` trait to call back
 
 These backends also need to provide a
 [`ratatui::backend::Backend`](https://docs.rs/ratatui/latest/ratatui/backend/trait.Backend.html) to
-`embassy_inspect` witch will then be drawn to.
+`embassy_inspect` which will then be drawn to.
 
