@@ -39,7 +39,7 @@
    ```
 2. Start GDB and connect to the target, for example:
    ```
-   rust-gdb /path/to/binary-file
+   rust-gdb /path/to/elf-file
    (gdb) target remote :1337
    ```
 3. Run the following GDB commands to start the TUI

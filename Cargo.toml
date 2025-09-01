@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "embassy_inspect",
   "gdb_backend",
+  "probe_rs_backend",
 ]
 exclude = [
   "test_crates"

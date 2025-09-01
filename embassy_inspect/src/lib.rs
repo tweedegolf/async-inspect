@@ -66,7 +66,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
             let mut object_files = callback.get_objectfiles()?;
             object_files
                 .next()
-                .ok_or(anyhow!("Need atleast one objectfile"))?
+                .ok_or(anyhow!("Need at least one objectfile"))?
         };
 
         let debug_data = DebugData::from_object_file(object_file)?;
@@ -88,6 +88,7 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
             formating_cache: HashMap::new(),
         };
         s.update_values(callback);
+        s.handle_event(Event::Redraw, callback)?;
         Ok(s)
     }
 

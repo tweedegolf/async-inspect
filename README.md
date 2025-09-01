@@ -27,8 +27,16 @@ traditional debugger just shows the instruction pointer at the sleep function. E
 then show you where in the stack of async functions the tasks are waiting.
 
 ## How to use it
-Embassy inspect is written in a backend agnostic way, but at the moment only GDB is implemented as a
-backend, see [`./gdb_backend/README.md`](./gdb_backend/README.md) for instructions on how to use it.
+At the moment their exists two backends, a GDB backend and a probe-rs backend:
+
+- probe-rs backend, see [`./probe_rs_backend/README.md`](./probe_rs_backend/README.md) for install instructions
+  - Easy to install
+  - Can't use other debugging features
+  - No pretty printing of types
+- GDB backend, see [`./gdb_backend/README.md`](./gdb_backend/README.md) for install instructions
+  - Use GDB at the same time as embassy inspect
+  - Make use of GDB pretty printers
+  - Kinda annoying to install as it is a GDB extension
 
 ## Architecture documentation
 See [`./embassy_inspect/Architecture.md`](./embassy_inspect/Architecture.md) for a description of the
