@@ -1,5 +1,8 @@
-//! Based on https://crates.io/crates/tui-scrollview. modified to allow tracking clicks, and
-//! simplied for only my usecase.
+//! Scroll view that allows tracker where on the main view areas will end up.
+//!
+//! The tracking is needed to be able to track clicks.
+//!
+//! Based on <https://crates.io/crates/tui-scrollview>.
 
 use ratatui::{
     buffer::Buffer,
@@ -7,6 +10,7 @@ use ratatui::{
     widgets::Widget,
 };
 
+/// A Scroll view that allows tracking where an area will end up on the main view.
 pub struct ScrollView {
     buf: Buffer,
     scroll: i32,
@@ -43,7 +47,7 @@ impl ScrollView {
         }
     }
 
-    /// The size that this [`ScrollView`] excpects to be drawn in.
+    /// The size that this [`ScrollView`] expects to be drawn in.
     pub fn frame_size(&self) -> Size {
         self.buf.area.as_size()
     }
@@ -52,11 +56,11 @@ impl ScrollView {
     ///
     /// This is the equivalent of `Frame::render_widget`, but renders the widget into the scroll
     /// buffer rather than the main buffer. The widget will be rendered into the area of the buffer
-    /// specified by the `area` parameter moved by the givven scroll.
+    /// specified by the `area` parameter moved by the given scroll.
     ///
     /// The returned rect will contain the area that will be visible on the main buffer. A rect of
     /// size zero will be returned if the widget is full off screen (the rect location is then
-    /// unspecified). This will only be correct if the [`ScrollView`] is actualy rendered at the
+    /// unspecified). This will only be correct if the [`ScrollView`] is actually rendered at the
     /// area given in `new`.
     ///
     ///
@@ -126,7 +130,7 @@ impl ScrollView {
         return overlap.offset(self.offset);
     }
 
-    /// Gives the rect that is directly underneath the lowest draw widget with the givven height.
+    /// Gives the rect that is directly underneath the lowest draw widget with the given height.
     /// Spanning the full width of the `ScrollView`.
     pub fn next_area(&mut self, height: u16) -> Rect {
         Rect {
@@ -137,7 +141,7 @@ impl ScrollView {
         }
     }
 
-    /// Like [`Self::render_widget`] but automaticly places this widget directly underneath the
+    /// Like [`Self::render_widget`] but automatically places this widget directly underneath the
     /// lowest draw widget. Spanning the full width of the `ScrollView`.
     pub fn render_next_widget<W: Widget>(&mut self, widget: W, height: u16) -> Rect {
         self.render_widget(
@@ -151,8 +155,8 @@ impl ScrollView {
         )
     }
 
-    /// Returns the scroll value to use so that lowest rendered widget would just tuch the bottom of
-    /// the view.
+    /// Returns the scroll value to use so that lowest rendered widget would just touch the bottom
+    /// of the view.
     ///
     /// If the widgets don't reach the bottom of the view, zero is returned.
     pub fn max_scroll(&self) -> i32 {
@@ -169,7 +173,7 @@ impl Widget for ScrollView {
             height: self.buf.area.height,
         });
 
-        // Can't directly copy lines as the buf could have a offset set.
+        // Can't directly copy lines as the buf could have an offset set.
         for (dst_row, src_row) in overlap.rows().zip(self.buf.area.rows()) {
             for (dst_col, src_col) in dst_row.columns().zip(src_row.columns()) {
                 buf[dst_col] = self.buf[src_col].clone();

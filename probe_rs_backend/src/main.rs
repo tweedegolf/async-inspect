@@ -88,7 +88,7 @@ fn main() -> Result<()> {
     result
 }
 
-/// Return Err on a error and Ok(None) when there are no events
+/// Return Err on an error and Ok(None) when there are no events
 fn poll_event() -> Result<Option<Event>> {
     if !event::poll(Duration::default())? {
         return Ok(None);
@@ -207,11 +207,7 @@ impl<'a, 'b> Callback for ProbeRsCallback<'a, 'b> {
         Ok(buf)
     }
 
-    fn try_format_value(
-        &mut self,
-        _bytes: &[u8],
-        _ty: &embassy_inspect::ty::Type,
-    ) -> Option<String> {
+    fn try_format_value(&mut self, _bytes: &[u8], _ty: &embassy_inspect::Type) -> Option<String> {
         None
     }
 }

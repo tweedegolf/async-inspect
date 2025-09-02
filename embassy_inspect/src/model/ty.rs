@@ -1,12 +1,17 @@
+//! Identifier for some type on the target program.
+
 use ddbug_parser::{FileHash, TypeKind};
 
 use super::from_namespace_and_name;
 
-/// This type mostly only exsit to work around gdb bugs.
+/// Identifier for some type on the target program.
 ///
-/// GDB does not seem to recognize types of the form `[<type>; 123]` or `*u8`, but these can
-/// be manualy created. So this type used to store the "shape" of some types to allow for the
-/// reconstruction on the GDB side.
+/// This type could just be a string if it was not for a GDB bug. GDB does not seem to recognize
+/// types of the form `[<type>; 123]` or `*u8` when formatting. Luckily these can be manually
+/// created from their base types. So this type used to store the "shape" of some types to allow for
+/// the reconstruction on the GDB side.
+///
+/// All other types are just stored as the name of the types.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     #[default]
@@ -78,8 +83,8 @@ impl Type {
             TypeKind::Function(function_type) => {
                 // Building to a base type to a string as GDB does not have a way to build function
                 // types anyway.
-                // TODO: The syntax here techicaly returns a ptr, so a wraping [`Self::Pointer`]
-                // sould be removed.
+                // TODO: The syntax created here refers to a pointer to a function while the
+                // TypeKind does not. So the wrapping [`Self::Pointer`] should be removed.
                 let mut name = String::from("fn(");
                 let parameters = function_type
                     .parameters()

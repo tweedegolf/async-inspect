@@ -1,3 +1,5 @@
+//! Models for the memory layout of futures generated from async fn.
+
 use std::collections::HashMap;
 
 use ddbug_parser::{FileHash, Result, StructType, TypeKind};
@@ -161,7 +163,7 @@ impl AsyncFnType {
                     }
                 };
 
-                // Rust somtimes ouputs the same field multiple times
+                // Rust sometimes outputs the same field multiple times
                 if !active_members.contains(&id) {
                     active_members.push(id);
                 }
@@ -194,7 +196,7 @@ impl AsyncFnType {
         Ok(s)
     }
 
-    /// Sort the members from smalles to biggest offset while kepping all id refrences intact
+    /// Sort the members from small to biggest offset while keeping all id references intact.
     fn sort_members_by_offset(&mut self) {
         let mut old_ids = (0..self.members.len()).collect::<Vec<_>>();
         old_ids.sort_unstable_by_key(|id| self.members[*id].offset);
@@ -272,8 +274,8 @@ impl StateValue {
 pub(crate) struct AsyncFnValue {
     pub(crate) ty: AsyncFnType,
 
-    /// Err value is the found discriminat value that does not have a coresponding State and the
-    /// bytes that supositly contained the AsyncFn.
+    /// Err value is the found discriminant value that does not have a corresponding State and the
+    /// bytes that supposedly contained the AsyncFn.
     pub(crate) state_value: std::result::Result<StateValue, (u64, Vec<u8>)>,
 }
 

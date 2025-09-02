@@ -1,5 +1,5 @@
 //! Lovingly stolen from the main probe-rs cli implementation here:
-//! https://github.com/probe-rs/probe-rs/blob/master/probe-rs-tools/src/bin/probe-rs/util/common_options.rs
+//! <https://github.com/probe-rs/probe-rs/blob/master/probe-rs-tools/src/bin/probe-rs/util/common_options.rs>
 
 use std::{io::Write, path::PathBuf};
 

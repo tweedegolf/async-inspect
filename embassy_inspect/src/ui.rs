@@ -1,3 +1,5 @@
+mod scroll_view;
+
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
@@ -12,19 +14,18 @@ use ratatui::{
 };
 
 use crate::{
-    dwarf_parser::{async_fn::Member, future::FutureValue},
-    scroll_view::ScrollView,
-};
-
-use super::{
     Click, ClickButton,
-    dwarf_parser::{
+    model::{
+        async_fn::Member,
         async_fn::{AsyncFnType, AsyncFnValue},
+        future::FutureValue,
         future::FutureValueKind,
         task_pool::{TaskPoolValue, TaskValue},
         ty::Type,
     },
 };
+
+use scroll_view::ScrollView;
 
 fn is_clicked_left(area: &Rect, click: Option<Click>) -> bool {
     match click {

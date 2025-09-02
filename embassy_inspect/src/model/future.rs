@@ -1,3 +1,5 @@
+//! Models for the memory layout of join and select futures.
+
 use ddbug_parser::{FileHash, Result, TypeKind};
 
 use super::{

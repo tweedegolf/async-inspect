@@ -1,3 +1,5 @@
+//! Models for the memory layout and locations of task pools.
+
 use std::collections::HashMap;
 
 use super::{
@@ -106,10 +108,10 @@ pub(crate) struct TaskPool {
     pub(crate) address: u64,
     // Amount of bytes for the whole pool
     pub(crate) size: u64,
-    // The offset of a future from the start of a element in the array
+    // The offset of a future from the start of an element in the array
     pub(crate) future_offset: u64,
 
-    // Maximum number of thask this pool can hold.
+    // Maximum number of tasks this pool can hold.
     pub(crate) number_of_tasks: usize,
 
     // The async fn type this pool stores
@@ -186,7 +188,7 @@ impl TaskPool {
             .namespace()
             .ok_or("TaskPoolHolder needs a namespace")?;
 
-        // The task macro generates a namesapce with the name of the function, so the path generated
+        // The task macro generates a namespace with the name of the function, so the path generated
         // from only the namespaces will actually end in the name of the original task function.
         let path = namespace_to_path(namespace);
         let task_name = namespace_to_path(

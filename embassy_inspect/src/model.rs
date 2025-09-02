@@ -1,3 +1,6 @@
+//! Contains types to model the memory layout of the future types of a particular program and to
+//! store the value of those types in a running target.
+
 use std::{collections::HashMap, fmt::Display};
 
 use anyhow::Result;
@@ -11,8 +14,9 @@ use self::{future::FutureType, task_pool::HeaderLayout, ty::Type};
 pub(crate) mod async_fn;
 pub(crate) mod future;
 pub(crate) mod task_pool;
-pub mod ty;
+pub(crate) mod ty;
 
+/// Converts a namespace into a path separated by `::`.
 fn namespace_to_path(namespace: &ddbug_parser::Namespace<'_>) -> String {
     let name = namespace.name().unwrap_or("<unknown>");
     match namespace.parent() {
@@ -26,6 +30,7 @@ fn namespace_to_path(namespace: &ddbug_parser::Namespace<'_>) -> String {
     }
 }
 
+/// Converts a namespace and a name into a path separated by `::`.
 fn from_namespace_and_name(
     namespace: Option<&ddbug_parser::Namespace<'_>>,
     name: Option<&str>,
@@ -43,6 +48,7 @@ fn from_namespace_and_name(
     result
 }
 
+/// A location in the source code.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Source {
     pub(crate) path: String,
@@ -76,8 +82,12 @@ impl Source {
     }
 }
 
+/// The full model extracted from the debug data.
 #[derive(Debug, Clone)]
 pub(crate) struct DebugData {
+    /// Address of the ends of the poll functions.
+    ///
+    /// Can be more than one because of the use of multiple executors or inlining.
     pub(crate) poll_done_addresses: Vec<u64>,
 
     pub(crate) future_types: HashMap<Type, FutureType>,
@@ -99,7 +109,6 @@ impl DebugData {
                 }
             }
         }
-        // log::error!("{:?}", future_types);
 
         let header_layout = HeaderLayout::from_ddbug_data(&file_hash)?;
 
@@ -181,8 +190,8 @@ fn find_poll_function_addresses(file_hash: &FileHash) -> Vec<u64> {
     return addresses;
 }
 
-/// Recursivly look for all locations the given function is inlined into the givven inlined_function.
-/// Adds the last address to the found_addresses.
+/// Recursively look for all locations the given function is inlined into the given inlined_function.
+/// Adds the found address to the found_addresses.
 fn find_function_in_inlined(
     function: &ddbug_parser::Function,
     inlined_function: &ddbug_parser::InlinedFunction,
@@ -200,7 +209,7 @@ fn find_function_in_inlined(
     {
         for range in inlined_function.ranges() {
             if range.begin == 0 {
-                // Strange bug where every inlined funciton also has a range staring at 0.
+                // Strange bug where every inlined function also has a range staring at 0.
                 // Just ignoring it here.
                 continue;
             }

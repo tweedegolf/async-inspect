@@ -1,6 +1,18 @@
+//! Frontend library implementing the memory model and the TUI.
+//!
+//! # As debugger
+//! This library can't be used on it's own to debug a target and should be used via a backend. See
+//! their documentation on how to use it.
+//!
+//! # Creating a backend
+//! (Also see the `Architecture.md` file in this project repository)
+//!
+//! Backend should create a [`EmbassyInspector`] before starting its own an event loop.
+//! Events should then be sent to via [`EmbassyInspector::handle_event`]. See the [`Callback`] trait
+//! for what operations you will have to be able to implement.
+
 mod callback;
-mod dwarf_parser;
-mod scroll_view;
+mod model;
 mod ui;
 
 use std::collections::HashMap;
@@ -13,12 +25,13 @@ use ratatui::{
     text::{Line, Span},
 };
 
-use dwarf_parser::{DebugData, task_pool::TaskPoolValue};
+use model::{DebugData, task_pool::TaskPoolValue};
 use ui::{UiDrawCtx, UiState};
 
 pub use crate::callback::Callback;
-pub use dwarf_parser::ty;
+pub use model::ty::Type;
 
+/// The mouse button that was used for a click.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ClickButton {
     Left,
@@ -26,41 +39,63 @@ pub enum ClickButton {
     Right,
 }
 
+/// A single mouse click.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Click {
     pub pos: Position,
     pub button: ClickButton,
 }
 
+/// External event to be send to an [`EmbassyInspector`].
 #[derive(Debug)]
 pub enum Event {
-    /// Window was resized of made invalid for a diffrent reason and needs te be redrawn.
+    /// Window was resized or made invalid for a different reason.
+    ///
+    /// This event will fore the TUI the be redrawn.
     Redraw,
+    /// The user clicked on the TUI.
     Click(Click),
+    /// The user scrolled in the TUI.
+    ///
+    /// A negative number indicates scrolling down, the magnitude is the amount of lines to scroll.
     Scroll(i32),
 
-    /// The breakpoint with the given id was hit.
+    /// The breakpoint with the given id was hit. See [`Callback`] for how the id's work.
+    ///
+    /// **The target should be readable when this event is triggered.**
     Breakpoint(u64),
-    /// The target was stopped for any reason except a breakpoint.
+    /// The target was stopped for any other reason.
+    ///
+    /// **The target should be readable when this event is triggered.**
     Stoped,
 }
 
+/// Contains the full state of the debugger
+///
+/// Create an instance of this struct on startup before stating the event loop. Relevant events
+/// should be sent to [`handle_event`](Self::handle_event), the TUI will then automatically be
+/// redrawn when needed. See [`Event`] for what events to handle.
 #[derive(Debug)]
 pub struct EmbassyInspector<RB: ratatui::backend::Backend> {
     terminal: Terminal<RB>,
-    poll_break_point_ids: Vec<u64>,
-
     ui_state: UiState,
+
+    poll_break_point_ids: Vec<u64>,
 
     debug_data: DebugData,
     last_values: Vec<TaskPoolValue>,
-    // Gdb can only format values containing pointers when the target is stopt, so we cache formated
-    // values here to use if the screen needs to be refreshed for for example scrolling while the
-    // target is running.
-    formating_cache: HashMap<(Vec<u8>, ty::Type), Line<'static>>,
+    // GDB can only format values containing pointers when the target has been stopped, so we cache
+    // formatted values here to use if the screen needs to be refreshed for for example scrolling
+    // while the target is still running.
+    //
+    // This does not work in all cases, but it does help in a lot of them.
+    formating_cache: HashMap<(Vec<u8>, Type), Line<'static>>,
 }
 
 impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
+    /// Create a new [`EmbassyInspector`].
+    ///
+    /// The `ratatui_backend` will be drawn to automatically when needed.
     pub fn new<C: Callback>(ratatui_backend: RB, callback: &mut C) -> Result<Self> {
         let object_file = {
             let mut object_files = callback.get_objectfiles()?;
@@ -111,10 +146,14 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
         }
     }
 
+    /// Process a new external [`Event`]
+    ///
+    /// See [`Event`] for all possible event and whether or not the target needs to be readable when
+    /// the event is dispatched.
     pub fn handle_event<C: Callback>(&mut self, event: Event, callback: &mut C) -> Result<()> {
         let click = match event {
             Event::Redraw => {
-                // we redraw afther every event.
+                // We redraw after every event anyway so nothing to do here.
                 None
             }
             Event::Click(click) => Some(click),
@@ -163,7 +202,10 @@ impl<RB: ratatui::backend::Backend> EmbassyInspector<RB> {
     }
 }
 
-fn format_value<C: Callback>(bytes: &[u8], ty: &ty::Type, callback: &mut C) -> Line<'static> {
+/// Format a value using the callback.
+///
+/// Falls back to just printing a list of bytes if the formatter in the backend fails.
+fn format_value<C: Callback>(bytes: &[u8], ty: &Type, callback: &mut C) -> Line<'static> {
     match callback
         .try_format_value(&bytes, &ty)
         .and_then(|formatted| ansi_to_tui::IntoText::into_text(&formatted).ok())

@@ -6,8 +6,7 @@
 TUI to help debug embedded async rust projects using the embassy executor.
 
 ## What it does
-![terminal showing a TUI inside GDB containing a tree view of where in the future functions a task
-is waiting](./assets/FullView.png)
+![terminal showing a TUI inside GDB containing a tree view of the futururs of a task is waiting on](./docs/assets/FullView.png)
 
 The main page of embassy inspect gives an overview of what embassy tasks are spawned and at what
 await point they are waiting. Clicking on a specific task brings you to the "backtrace" for that
@@ -39,6 +38,6 @@ At the moment their exists two backends, a GDB backend and a probe-rs backend:
   - Kinda annoying to install as it is a GDB extension
 
 ## Architecture documentation
-See [`./embassy_inspect/Architecture.md`](./embassy_inspect/Architecture.md) for a description of the
+See [`./docs/Architecture.md`](./docs/Architecture.md) for a description of the
 architecture of this project.
 
