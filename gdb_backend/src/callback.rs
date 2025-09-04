@@ -7,7 +7,7 @@ use pyo3::{
     types::{PyBytes, PyDict},
 };
 
-use embassy_inspect::{Callback, Type};
+use inspect_embassy::{Callback, Type};
 
 pub(crate) struct GdbCallback<'a, 'py> {
     py: Python<'py>,

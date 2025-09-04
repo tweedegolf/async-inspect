@@ -5,12 +5,12 @@ a good starting point for anybody wanting to contribute. More details are also a
 comments at the top of most files.
 
 ## Overview
-Embassy inspect consists of a library called `embassy_inspect` implementing the parsing of the debug
+Inspect-embassy consists of a library called `inspect_embassy` implementing the parsing of the debug
 data, parsing of the raw bytes from the target and displaying all this information in a TUI. And of
 multiple backend implementations implementing the interaction with the user, raw terminal and the
 target.
 
-`embassy_inspect`'s entry point is the `EmbassyInspector` struct. Backend's create an instance of
+`inspect_embassy`'s entry point is the `EmbassyInspector` struct. Backend's create an instance of
 this struct giving it a
 [`ratatui::backend::Backend`](https://docs.rs/ratatui/latest/ratatui/backend/trait.Backend.html) 
 and start the event loop. Events are parsed by the backend and given to the `EmbassyInspector` via
@@ -25,7 +25,7 @@ A breakpoint then gets set at the end of the poll function. Every time it of som
 get hit the memory of every task pool get read. These bytes are then parsed based on the layout
 model gotten above. All of this is then displayed in the TUI.
 
-## `embassy_inspect` overview
+## `inspect_embassy` overview
 ### `model`
 All code for parsing the debug data and then using that to parse the raw bytes from the target lives
 here. Types ending in `Type` contain the layout of types in the target parsed from debug data. Types

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use pyo3::{intern, prelude::*};
 
-use embassy_inspect::{Click, EmbassyInspector, Event};
+use inspect_embassy::{Click, EmbassyInspector, Event};
 
 use callback::GdbCallback;
 use ratatui_backend::GdbRatatuiBackend;
@@ -75,9 +75,9 @@ impl GdbTui {
     /// When TUI mouse events are disabled by turning off the tui mouse-events setting (see set tui mouse-events), then click will not be called.
     fn click(&mut self, x: i32, y: i32, button: u8, py: Python) -> PyResult<()> {
         let button = match button {
-            1 => embassy_inspect::ClickButton::Left,
-            2 => embassy_inspect::ClickButton::Middle,
-            3 => embassy_inspect::ClickButton::Right,
+            1 => inspect_embassy::ClickButton::Left,
+            2 => inspect_embassy::ClickButton::Middle,
+            3 => inspect_embassy::ClickButton::Right,
             other => {
                 log::error!("Unknown button id: {other}");
                 return Ok(());

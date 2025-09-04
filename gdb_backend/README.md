@@ -44,11 +44,11 @@
    ```
 3. Run the following GDB commands to start the TUI
    ```
-   (gdb) source embassy_inspect.py
-   (gdb) tui layout embassy_inspect
+   (gdb) source inspect_embassy.py
+   (gdb) tui layout inspect_embassy
    (gdb) continue
    ```
-4. The embassy inspect TUI should now open at the top of the GDB window, you will have to use it via
+4. The inspect-embassy TUI should now open at the top of the GDB window, you will have to use it via
    a mouse as GDB does not pass key presses along.
 
 > [!TIP]
@@ -58,7 +58,7 @@
 > On my laptop only an external mouse can be used to click inside GDB, the trackpad does not work.
 
 > [!TIP]
-> After hitting the embassy inspect set breakpoint once it will be possible to run commands again,
+> After hitting the inspect-embassy set breakpoint once it will be possible to run commands again,
 > but the gdb display will not show the `(gdb)`. Just start typing and it should appear.
 > 
 > TODO: improve this situation

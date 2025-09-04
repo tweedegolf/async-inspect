@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
-  "embassy_inspect",
+  "inspect_embassy",
   "gdb_backend",
   "probe_rs_backend",
 ]
@@ -11,4 +11,4 @@ exclude = [
 
 [workspace.dependencies]
 
-embassy_inspect = { path = "embassy_inspect" }
+inspect_embassy = { path = "inspect_embassy" }

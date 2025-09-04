@@ -9,7 +9,7 @@ name = "gdb_backend"
 crate-type = ["cdylib"]
 
 [dependencies]
-embassy_inspect = { workspace = true }
+inspect_embassy = { workspace = true }
 
 anyhow = "1.0.98"
 log = "0.4.27"

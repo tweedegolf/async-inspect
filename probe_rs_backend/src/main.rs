@@ -12,7 +12,7 @@ use probe_rs::{
     probe::{DebugProbeError, list::Lister},
 };
 
-use embassy_inspect::{Callback, Click, Event};
+use inspect_embassy::{Callback, Click, Event};
 
 use common_options::ProbeOptions;
 use ratatui::{
@@ -29,7 +29,7 @@ mod common_options;
 #[derive(clap::Parser, Debug)]
 #[clap(
     name = "probe-rs-backend",
-    about = "The probe-rs backend for embassy inspect"
+    about = "The probe-rs backend for inspect-embassy"
 )]
 struct Cli {
     /// The path to the ELF file that has been flashed on the chip.
@@ -106,9 +106,9 @@ fn poll_event() -> Result<Option<Event>> {
         event::Event::Mouse(mouse_event) => match mouse_event.kind {
             MouseEventKind::Down(button) => {
                 let button = match button {
-                    event::MouseButton::Left => embassy_inspect::ClickButton::Left,
-                    event::MouseButton::Right => embassy_inspect::ClickButton::Right,
-                    event::MouseButton::Middle => embassy_inspect::ClickButton::Middle,
+                    event::MouseButton::Left => inspect_embassy::ClickButton::Left,
+                    event::MouseButton::Right => inspect_embassy::ClickButton::Right,
+                    event::MouseButton::Middle => inspect_embassy::ClickButton::Middle,
                 };
                 Event::Click(Click {
                     pos: ratatui::layout::Position {
@@ -143,11 +143,11 @@ fn run<B: ratatui::backend::Backend>(
         object_files,
     };
 
-    let mut embassy_inspector = embassy_inspect::EmbassyInspector::new(backend, &mut callback)?;
+    let mut inspect_embassyor = inspect_embassy::EmbassyInspector::new(backend, &mut callback)?;
 
     loop {
         if let Some(event) = poll_event()? {
-            embassy_inspector.handle_event(event, &mut callback)?;
+            inspect_embassyor.handle_event(event, &mut callback)?;
             continue;
         }
 
@@ -160,7 +160,7 @@ fn run<B: ratatui::backend::Backend>(
                 let addr = callback
                     .core
                     .read_core_reg(callback.core.program_counter())?;
-                embassy_inspector.handle_event(Event::Breakpoint(addr), &mut callback)?;
+                inspect_embassyor.handle_event(Event::Breakpoint(addr), &mut callback)?;
             }
             Err(
                 probe_rs::Error::Timeout
@@ -207,7 +207,7 @@ impl<'a, 'b> Callback for ProbeRsCallback<'a, 'b> {
         Ok(buf)
     }
 
-    fn try_format_value(&mut self, _bytes: &[u8], _ty: &embassy_inspect::Type) -> Option<String> {
+    fn try_format_value(&mut self, _bytes: &[u8], _ty: &inspect_embassy::Type) -> Option<String> {
         None
     }
 }
